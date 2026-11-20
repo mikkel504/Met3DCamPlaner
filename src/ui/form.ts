@@ -1,6 +1,8 @@
 import { COMMON_DEFAULTS, COMMON_FIELDS } from '../core/fields';
 import { DEFAULT_TENSION_XML } from '../core/constants';
 import { getDefaultPathType, listPathTypes } from '../core/paths';
+import { buildCollapsibleSection } from './collapsible';
+import type { CollapsibleSection } from './collapsible';
 import type {
   CommonField,
   CommonParams,
@@ -20,6 +22,15 @@ import type {
  * (i)-Knopf an der Beschriftung.
  */
 
+/** Gruppen des Formulars; alle außer 'export' werden hier gebaut. */
+type FieldGroup = 'focus' | 'path' | 'camera';
+
+const GROUP_TITLES: Record<FieldGroup, string> = {
+  focus: 'Fokuspunkt',
+  path: 'Kamerafahrt',
+  camera: 'Kamera-Einstellungen',
+};
+
 export interface FormHandle {
   readCommon(): CommonParams;
   readPathId(): string;
@@ -38,6 +49,8 @@ const FIELD_PREFIX = {
 interface FieldRefs {
   input: HTMLInputElement | HTMLSelectElement;
   messages: HTMLElement;
+  /** Zugehörige Formulargruppe – nötig, um die Fehlerzahl pro Klappe anzuzeigen. */
+  group: FieldGroup;
 }
 
 /** Akzeptiert deutsches Komma als Dezimaltrenner; leer/ungültig -> NaN. */
@@ -51,27 +64,26 @@ export function parseNumber(raw: string): number {
 
 export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
   const refs = new Map<string, FieldRefs>();
+  const sections = new Map<FieldGroup, CollapsibleSection>();
   const { select: pathSelect, container: pathParamsContainer } = buildPathSelector(onChange);
 
+  // Alle Gruppen sind zunächst zugeklappt – das Formular ist sonst länger als
+  // der Bildschirm. Fehlerzahlen erscheinen als Hinweis am Klappkopf.
   for (const group of ['focus', 'path', 'camera'] as const) {
-    const section = document.createElement('section');
-    section.className = 'form-group';
-    const heading = document.createElement('h2');
-    heading.textContent =
-      group === 'focus' ? 'Fokuspunkt' : group === 'path' ? 'Kamerafahrt' : 'Kamera-Einstellungen';
-    section.append(heading);
+    const section = buildCollapsibleSection(GROUP_TITLES[group]);
+    sections.set(group, section);
 
     if (group === 'path') {
       if (pathSelect) {
-        section.append(pathSelect);
+        section.details.append(pathSelect);
       }
-      section.append(pathParamsContainer);
+      section.details.append(pathParamsContainer);
     }
 
     for (const field of COMMON_FIELDS.filter((f) => f.group === group)) {
-      section.append(buildCommonField(field, refs, onChange));
+      section.details.append(buildCommonField(field, group, refs, onChange));
     }
-    root.append(section);
+    root.append(section.details);
   }
 
   // Checkboxen mit disables-Verknüpfung: abhängiges Feld graue stellen
@@ -172,6 +184,9 @@ export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
         ref.input.classList.remove('invalid');
         ref.input.removeAttribute('aria-invalid');
       }
+      // Fehlerzahlen pro Klappe: steht die Gruppe zu, wäre die Meldung am Feld
+      // sonst unsichtbar.
+      const errorCounts = new Map<FieldGroup, number>();
       for (const issue of issues) {
         if (!issue.field) {
           continue;
@@ -187,7 +202,11 @@ export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
         if (issue.severity === 'error') {
           ref.input.classList.add('invalid');
           ref.input.setAttribute('aria-invalid', 'true');
+          errorCounts.set(ref.group, (errorCounts.get(ref.group) ?? 0) + 1);
         }
+      }
+      for (const [group, section] of sections) {
+        section.setIssueCount(errorCounts.get(group) ?? 0);
       }
     },
   };
@@ -265,6 +284,7 @@ function buildLabelRow(
 
 function buildCommonField(
   field: CommonField,
+  group: FieldGroup,
   refs: Map<string, FieldRefs>,
   onChange: () => void,
 ): HTMLElement {
@@ -318,7 +338,7 @@ function buildCommonField(
   wrap.append(messages);
 
   input.addEventListener('input', onChange);
-  refs.set(fieldId, { input, messages });
+  refs.set(fieldId, { input, messages, group });
   return wrap;
 }
 
@@ -404,6 +424,6 @@ function buildParamField(
 
   input.addEventListener('input', onChange);
   input.addEventListener('change', onChange);
-  refs.set(fieldId, { input, messages });
+  refs.set(fieldId, { input, messages, group: 'path' });
   return wrap;
 }

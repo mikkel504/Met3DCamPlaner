@@ -45,7 +45,7 @@ function update(): void {
   const hasErrors = issues.some((i) => i.severity === 'error');
   if (hasErrors) {
     exportHandle.setExportEnabled(false);
-    exportHandle.setStatus('Bitte fehlerhafte Felder korrigieren – Export ist deaktiviert.');
+    exportHandle.setStatus('Bitte fehlerhafte Felder korrigieren – Export ist deaktiviert.', 'error');
     return;
   }
 

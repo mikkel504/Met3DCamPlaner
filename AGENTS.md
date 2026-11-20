@@ -41,6 +41,11 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   Die Hilfetexte stehen **nicht** mehr dauerhaft unter den Feldern, sondern hinter einem
   (i)-Knopf an der Beschriftung: `buildLabelRow()` in `ui/form.ts` (einzige Stelle für
   Beschriftung + Knopf), CSS `.info-button` und `.field.help-open .help`.
+  Die vier Bereiche (Fokuspunkt, Kamerafahrt, Kamera-Einstellungen, Export) sind
+  **Klappgruppen** (`src/ui/collapsible.ts`, `<details>`/`<summary>`): standardmäßig zu,
+  nur Export offen. Fehlerzahlen erscheinen als `.issue-badge` am Klappkopf (bleiben also
+  sichtbar, wenn die Gruppe zu ist); die Statusmeldung des Exports sitzt ebenfalls im
+  Klappkopf. Felder bleiben im DOM, Lesung/Validierung/Vorschau funktionieren unverändert.
 - **Entfernt auf Wunsch (November 2026):** Checkbox „Längengrad-Verzerrung korrigieren"
   (`correctLonDistortion`) aus `circle.ts` – wurde nicht gebraucht. Nicht wieder einführen.
   Ebenso das **Fahrttyp-Dropdown** im Formular: mit nur einem aktiven Fahrttyp ist es eine
@@ -176,6 +181,9 @@ Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norde
    │  ├─ xml.ts             # buildSequenceXml
    │  └─ validate.ts
    ├─ ui/                   # Formular, Download-Button, Fehleranzeige
+   │  ├─ form.ts            # Felder aus core-Metadaten, (i)-Knöpfe, Fehler am Feld
+   │  ├─ collapsible.ts     # <details>/<summary>-Abschnitt (Gruppen + Export)
+   │  └─ export.ts          # XML-Vorschau, Download, Zwischenablage
    ├─ view3d/               # three.js-Szene, Achsen, Pfad, Keyframe-Marker
    │  ├─ preview.ts
    │  ├─ basemap.ts         # Weltkarte als Ebene bei z = 0
@@ -320,7 +328,11 @@ Mit Vitest in `src/core/**/*.test.ts`:
 ## 8. UI/UX-Richtlinien
 
 - Einspaltiges Formular links, 3D-Vorschau rechts (auf schmalen Bildschirmen untereinander).
-- Gruppierung: „Fokuspunkt“, „Kamerafahrt“, „Kamera-Einstellungen“, „Export“.
+- Gruppierung: „Fokuspunkt“, „Kamerafahrt“, „Kamera-Einstellungen“, „Export“. Alle vier
+  Bereiche sind Klappgruppen (`src/ui/collapsible.ts`, `<details>`/`<summary>`): standardmäßig
+  zugeklappt, nur „Export“ offen. Fehlerzahlen erscheinen als `span.issue-badge` am Klappkopf,
+  damit sie bei zugeklappter Gruppe sichtbar bleiben; die Felder bleiben im DOM, Lesung und
+  Validierung funktionieren daher unverändert.
 - Jedes Feld mit Einheit und Erklärung; die Erklärung steckt hinter einem (i)-Knopf an der
   Beschriftung (ein-/ausklappbar, echtes `<button>` mit `aria-expanded`/`aria-controls`,
   `Esc` schließt) und steht **nicht** dauerhaft unter dem Feld – das hält das Formular kompakt.

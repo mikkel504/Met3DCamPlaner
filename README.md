@@ -45,6 +45,11 @@ Alle Felder sind mit sinnvollen Defaults vorbelegt – der Export funktioniert o
 Jede Beschriftung trägt ein **(i)-Symbol**: Klick (oder Fokus + Enter) klappt die Erklärung des
 Felds auf, erneutes Klick oder `Esc` blendet sie wieder aus – so bleibt das Formular kompakt.
 
+Die vier Bereiche sind ebenfalls **klappbar** (Pfeil vor der Überschrift): Fokuspunkt,
+Kamerafahrt und Kamera-Einstellungen sind standardmäßig zugeklappt, **Export** offen.
+Liegen in einer zugeklappten Gruppe Fehler vor, zeigt ihr Klappkopf einen Hinweis
+(„2 Fehler") – die Eingaben bleiben trotzdem wirksam und die Vorschau rechnet weiter.
+
 > **Wichtig:** Exportierte Datei einmal in Met.3D laden und prüfen.
 
 ## Format `Base_Sequence.xml`
