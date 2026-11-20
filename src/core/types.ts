@@ -30,6 +30,11 @@ export interface CommonParams {
    * Höhenunterschied Kamera/Fokuspunkt berechnet; false => manuell über pitch.
    */
   autoPitch: boolean;
+  /**
+   * ERGÄNZUNG (Anfrage 2026-11-20): true => am Ende wird eine exakte Kopie des
+   * ersten Keyframes angehängt, damit die Fahrt in Met.3D zum Start zurückkehrt.
+   */
+  loop: boolean;
   roll: number;
   transition: number;
   /**

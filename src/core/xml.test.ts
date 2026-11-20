@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_TENSION_XML } from './constants';
+import { DEFAULT_TENSION_XML, REFERENCE_TENSION_XML } from './constants';
 import { buildSequenceXml, escapeXml, formatNumber, formatTension } from './xml';
 import type { SequenceKey } from './types';
 
@@ -32,27 +32,27 @@ describe('buildSequenceXml', () => {
       refKey(-50, -50, 315),
       refKey(50, -50, 225),
     ];
-    const output = buildSequenceXml('Sequence', DEFAULT_TENSION_XML, keys);
+    const output = buildSequenceXml('Sequence', REFERENCE_TENSION_XML, keys);
     // Zeilenende-Normalisierung: Dateien könnten mit CRLF Checked-out sein.
     expect(output.replace(/\r\n/g, '\n')).toBe(referenceXml.replace(/\r\n/g, '\n'));
   });
 
   it('endet auf Zeilenumbruch und enthält keinen XML-Header', () => {
-    const output = buildSequenceXml('Sequence', DEFAULT_TENSION_XML, []);
+    const output = buildSequenceXml('Sequence', REFERENCE_TENSION_XML, []);
     expect(output.endsWith('\n')).toBe(true);
     expect(output.startsWith('<!DOCTYPE CameraSequence>')).toBe(true);
     expect(output).not.toContain('<?xml');
   });
 
   it('escaped name-Attribut', () => {
-    const output = buildSequenceXml('A&B<C>"D"', DEFAULT_TENSION_XML, []);
+    const output = buildSequenceXml('A&B<C>"D"', REFERENCE_TENSION_XML, []);
     expect(output).toContain('name="A&amp;B&lt;C&gt;&quot;D&quot;"');
   });
 
   it('escaped label-Attribut', () => {
     const key = refKey(0, 0, 0);
     key.label = '<tag> & "zitiert"';
-    const output = buildSequenceXml('Sequence', DEFAULT_TENSION_XML, [key]);
+    const output = buildSequenceXml('Sequence', REFERENCE_TENSION_XML, [key]);
     expect(output).toContain('label="&lt;tag&gt; &amp; &quot;zitiert&quot;"');
   });
 });
@@ -88,7 +88,11 @@ describe('formatNumber', () => {
 
 describe('formatTension', () => {
   it('erhält die float32-Präzision des Referenzwerts', () => {
-    expect(formatTension(DEFAULT_TENSION_XML)).toBe('0.059999998658895493');
+    expect(formatTension(REFERENCE_TENSION_XML)).toBe('0.059999998658895493');
+  });
+
+  it('schreibt den UI-Default 0.05 unverändert', () => {
+    expect(formatTension(DEFAULT_TENSION_XML)).toBe('0.05');
   });
 });
 
