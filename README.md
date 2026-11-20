@@ -36,9 +36,8 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
    Achsenende. Alle Beschriftungen – Achsen wie Gradnetz-Zahlen – nutzen denselben Baustein
    (`src/view3d/label.ts`) und sind dadurch in jeder Zoomstufe exakt gleich groß.
    Drehen/Zoomen mit der Maus; „Ansicht zurücksetzen" rahmt die Kamerafahrt, „Ganze Karte"
-   rahmt die ganze Weltkarte (dann sind alle Gradnetz-Werte am Rand zu sehen). Für eine
-   Ansicht senkrecht von oben ohne Fluchtpunkt gibt es zusätzlich „Orthografische
-   Draufsicht“; die beiden anderen Buttons holen zurück in die schräge 3D-Ansicht.
+   rahmt die ganze Weltkarte (dann sind alle Gradnetz-Werte am Rand zu sehen) und
+   „Draufsicht" stellt dieselbe Kamera fast senkrecht über die Karte, Norden oben.
 5. **Export** – „XML herunterladen" speichert `<name>.xml`; alternativ „In Zwischenablage
    kopieren". Die XML-Vorschau zeigt den exakten Dateiinhalt. Export ist deaktiviert,
    solange Validierungsfehler vorliegen.

@@ -35,9 +35,10 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   den Baustein `src/view3d/label.ts` und sind damit in jeder Zoomstufe exakt gleich groß.
   `circle.ts` hat zwei Radien: `radius` (Halbachse Nord–Süd) und `radiusLon`
   (Halbachse Ost–West) – gleiche Werte = Kreis, verschiedene = Ellipse.
-  Buttons „Ansicht zurücksetzen", „Ganze Karte" und „Orthografische Draufsicht" (zweite
-  Kamera: Orthografie senkrecht über der Karte, Norden oben; die anderen beiden Buttons
-  stellen die Perspektivkamera wieder her). Farben: Keyframes/Pfadlinie dunkelrot
+  Buttons „Ansicht zurücksetzen", „Ganze Karte" und „Draufsicht" (Draufsicht = dieselbe
+  Perspektivkamera fast senkrecht über der Karte, Norden oben – bewusst keine zweite
+  Kamera, damit der nächste Mausdrag sofort wieder die schräge Ansicht zeigt).
+  Farben: Keyframes/Pfadlinie dunkelrot
   (ohne Nummerierung, keine Loop-Beschriftung), Blickrichtungspfeile dunkelblau,
   Fokuspunkt orange. UI-Schrift vergrößert (`html { font-size: 112.5% }`).
   Die Hilfetexte stehen **nicht** mehr dauerhaft unter den Feldern, sondern hinter einem
@@ -289,10 +290,12 @@ Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderu
 - Pfadlinie über Catmull-Rom-Spline (`THREE.CatmullRomCurve3`, `centripetal`/`tension` passend), nur als Näherung der Met.3D-Interpolation; im UI mit Hinweis kennzeichnen.
 - Orbit-Controls (drehen, zoomen, verschieben), Buttons „Ansicht zurücksetzen" (rahmt die
   Kamerafahrt), „Ganze Karte" (rahmt die ganze Weltkarte, damit alle Randwerte sichtbar sind)
-  und „Orthografische Draufsicht" (zweite, orthografische Kamera senkrecht über der Karte,
-  Norden oben, Siehbereich „cover“ auf die ganze Karte). Die beiden ersten Buttons schalten
-  zurück auf die Perspektivkamera. `camera.up` ist pro Kamera unterschiedlich (Perspektive z,
-  Orthografie y), deshalb werden die OrbitControls beim Kamerawechsel neu gebaut.
+  und „Draufsicht" (dieselbe Kamera fast senkrecht über der Kartenmitte, Norden oben,
+  Abstand wieder über `framingDistance` bestimmt). Bewusst **keine** zweite Kamera: ein
+  Knopf soll nur umpositionieren, damit der nächste Mausdrag sofort wieder die gewohnte
+  schräge Ansicht zeigt und sich nichts „verzieht". Ganz ohne Neigung wäre die Blickrichtung
+  parallel zu `camera.up` sein (Pol der Orbit-Kugel, Sprünge beim Drehen), deshalb bleibt die
+  Draufsicht um `TOP_VIEW_TILT_DEG` (5°) gekippt.
 - Vorschau aktualisiert sich **live** bei jeder Eingabeänderung (Debounce ca. 100 ms).
 - Ein Z-up-Koordinatensystem verwenden (`camera.up.set(0, 0, 1)`), damit z der Höhe entspricht.
 - Kartengrundlage: equirektanguläre Weltkarte aus `public/` als Textur auf einer Ebene bei

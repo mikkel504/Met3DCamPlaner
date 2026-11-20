@@ -33,18 +33,26 @@ const AXIS_LABEL_OFFSET = 4;
 const VIEW_DIRECTION = new THREE.Vector3(0.8, -1.1, 0.9).normalize();
 
 /**
- * Orthografische Draufsicht: Höhe der Kamera über der Karte. Bei einer
- * Orthografiekamera bestimmt diese Höhe nur near/far und den Drehpunkt –
- * die Bildgröße bleibt unverändert.
+ * Draufsicht: Abweichung von der Senkrechten in Grad. Rein senkrecht nach unten
+ * zu blicken wäre ein Pol der Orbit-Kugel – dort ist die Drehrichtung um die
+ * Hochachse undefiniert und das Bild springt. Ein kleiner Rest Neigung hält die
+ * Ansicht stabil und zeigt beim ersten Drehen sofort wieder die normale Perspektive.
  */
-const ORTHO_CAMERA_HEIGHT = 500;
+const TOP_VIEW_TILT_DEG = 5;
 
-/** Zugabe auf die halbe Kartenausdehnung, damit die Randbeschriftung ganz sichtbar bleibt. */
-const ORTHO_FIT_MARGIN = 1.06;
+/** Zugabe auf die Kartenausdehnung, damit die Randbeschriftung ganz sichtbar bleibt. */
+const TOP_VIEW_FIT_MARGIN = 1.05;
 
-/** Zoomgrenzen der Draufsicht (OrbitControls ändern bei einer Orthografiekamera `camera.zoom`). */
-const ORTHO_MIN_ZOOM = 0.4;
-const ORTHO_MAX_ZOOM = 50;
+/**
+ * Richtung vom Blickpunkt zur Kamera in der Draufsicht: fast senkrecht nach oben,
+ * leicht nach Süden. Die Kamera steht damit südlich der Kartenmitte und blickt nach
+ * Norden, wodurch Nord am oberen Bildrand liegt.
+ */
+const TOP_VIEW_DIRECTION = new THREE.Vector3(
+  0,
+  -Math.sin((TOP_VIEW_TILT_DEG * Math.PI) / 180),
+  Math.cos((TOP_VIEW_TILT_DEG * Math.PI) / 180),
+).normalize();
 
 export interface PreviewHandle {
   update(common: CommonParams, path: PathType, pathParams: ParamRecord, keys: SequenceKey[]): void;
@@ -52,7 +60,10 @@ export interface PreviewHandle {
   resetView(): void;
   /** Rahmt die ganze Weltkarte, dann sind alle Gradnetz-Werte am Rand sichtbar. */
   showWorld(): void;
-  /** Orthografische Draufsicht auf die ganze Karte (Nord oben, ohne Fluchtpunkt). */
+  /**
+   * Draufsicht auf die ganze Karte: dieselbe Kamera, nur fast senkrecht über der
+   * Karte positioniert (Nord oben). Gedreht wird danach ganz normal weiter.
+   */
   showTopView(): void;
 }
 
@@ -136,39 +147,8 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 5000);
   camera.up.set(0, 0, 1); // Z-up, damit z der Höhe entspricht (Abschnitt 6.3)
 
-  // Zweite Kamera für die orthografische Draufsicht: ohne Fluchtpunkt ist ein
-  // Grad oben im Bild genauso groß wie unten, was beim Ablesen der Karte hilft.
-  // up = y (Nord) zeigt nach Bildschirminhalt oben; von oben nach unten zu blicken
-  // wäre mit up = z nicht möglich (Blickrichtung wäre parallel zu up).
-  const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 5000);
-  orthoCamera.up.set(0, 1, 0);
-
-  let activeCamera: THREE.PerspectiveCamera | THREE.OrthographicCamera = camera;
-  // OrbitControls merkt sich die up-Richtung der Kamera beim Erzeugen, deshalb
-  // gehört zu jeder Kamera eigene Controls (beim Wechsel neu gebaut).
-  let controls = createControls(activeCamera);
-
-  function createControls(
-    target: THREE.PerspectiveCamera | THREE.OrthographicCamera,
-  ): OrbitControls {
-    const instance = new OrbitControls(target, renderer.domElement);
-    instance.enableDamping = true;
-    if (target === orthoCamera) {
-      instance.minZoom = ORTHO_MIN_ZOOM;
-      instance.maxZoom = ORTHO_MAX_ZOOM;
-    }
-    return instance;
-  }
-
-  /** Zurück auf die Perspektivkamera (Ansichten „zurücksetzen"/„Ganze Karte"). */
-  function usePerspectiveCamera(): void {
-    if (activeCamera === camera) {
-      return;
-    }
-    controls.dispose();
-    activeCamera = camera;
-    controls = createControls(camera);
-  }
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
 
   const staticGroup = new THREE.Group();
   const dynamicGroup = new THREE.Group();
@@ -195,14 +175,8 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
    * Welteinheiten, die der Viewport-Höhe an der Position `position` entsprechen.
    * Bewusst je Beschriftung gerechnet (Entfernung Kamera -> Sprite), damit Texte
    * in unterschiedlicher Entfernung identisch groß auf dem Bildschirm erscheinen.
-   * Bei der Orthografiekamera ist dieser Wert überall gleich.
    */
   function viewHeightWorldAt(position: THREE.Vector3): number {
-    if (activeCamera === orthoCamera) {
-      // Orthografisch gibt es keinen Fluchtpunkt: die Viewport-Höhe in
-      // Welteinheiten ist in Bildtiefe gleich und hängt nur am zoom.
-      return (orthoCamera.top - orthoCamera.bottom) / orthoCamera.zoom;
-    }
     const distance = camera.position.distanceTo(position);
     return 2 * distance * Math.tan((camera.fov * Math.PI) / 360);
   }
@@ -374,37 +348,51 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
   }
 
   /**
-   * Kameraposition für eine Bounds berechnen. Die Blickrichtung ist fest, der
-   * Abstand wird aus der projizierten Ausdehnung der Box ermittelt – so passt
-   * sowohl eine kleine Kamerafahrt als auch die ganze Weltkarte.
+   * Halbe Ausdehnung einer Bounds, mit Mindestgröße – sonst läuft die
+   * Abstandsberechnung bei sehr flachen oder kleinen Szenen gegen 0.
    */
-  function frameCamera(bounds: { min: THREE.Vector3; max: THREE.Vector3 }): void {
-    const center = bounds.min.clone().add(bounds.max).multiplyScalar(0.5);
+  function halfExtents(bounds: { min: THREE.Vector3; max: THREE.Vector3 }): THREE.Vector3 {
     const half = bounds.max.clone().sub(bounds.min).multiplyScalar(0.5);
     half.x = Math.max(half.x, 5);
     half.y = Math.max(half.y, 5);
     half.z = Math.max(half.z, 5);
+    return half;
+  }
 
-    const dir = VIEW_DIRECTION;
-    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 0, 1), dir);
+  /**
+   * Abstand, den die Kamera braucht, damit eine Box mit halber Ausdehnung `half`
+   * in Blickrichtung `toCamera` (von der Szene zur Kamera) ganz im Bild liegt.
+   */
+  function framingDistance(toCamera: THREE.Vector3, half: THREE.Vector3): number {
+    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 0, 1), toCamera);
     if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
     right.normalize();
-    const up = new THREE.Vector3().crossVectors(dir, right).normalize();
+    const up = new THREE.Vector3().crossVectors(toCamera, right).normalize();
 
     // Ausdehnung der Box entlang der Bildschirmachsen (Abschätzung über Beträge).
     const projected = (axis: THREE.Vector3): number =>
       Math.abs(axis.x) * half.x + Math.abs(axis.y) * half.y + Math.abs(axis.z) * half.z;
     const width = projected(right);
     const height = projected(up);
-    const depth = projected(dir);
+    const depth = projected(toCamera);
 
     const tanHalfFov = Math.tan((camera.fov * Math.PI) / 360);
     const distanceHeight = height / tanHalfFov;
     const distanceWidth = width / (tanHalfFov * Math.max(camera.aspect, 0.1));
-    const distance = 1.1 * Math.max(distanceHeight, distanceWidth) + depth;
+    return 1.1 * Math.max(distanceHeight, distanceWidth) + depth;
+  }
 
+  /**
+   * Kameraposition für eine Bounds berechnen. Die Blickrichtung ist fest, der
+   * Abstand wird aus der projizierten Ausdehnung der Box ermittelt – so passt
+   * sowohl eine kleine Kamerafahrt als auch die ganze Weltkarte.
+   */
+  function frameCamera(bounds: { min: THREE.Vector3; max: THREE.Vector3 }): void {
+    const center = bounds.min.clone().add(bounds.max).multiplyScalar(0.5);
     homeTarget = center;
-    homePosition = center.clone().addScaledVector(dir, distance);
+    homePosition = center
+      .clone()
+      .addScaledVector(VIEW_DIRECTION, framingDistance(VIEW_DIRECTION, halfExtents(bounds)));
   }
 
   function update(
@@ -424,7 +412,6 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     if (lastState) {
       frameCamera(computeBounds(lastState.common, lastState.keys));
     }
-    usePerspectiveCamera();
     camera.position.copy(homePosition);
     controls.target.copy(homeTarget);
     controls.update();
@@ -434,49 +421,25 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     const bounds = worldBounds();
     bounds.max.z = AXIS_Z_HEIGHT; // damit die z-Achse mit Beschriftung im Bild bleibt
     frameCamera(bounds);
-    usePerspectiveCamera();
     camera.position.copy(homePosition);
     controls.target.copy(homeTarget);
     controls.update();
   }
 
   /**
-   * Orthografische Draufsicht auf die ganze Karte: Kamera direkt über der
-   * Kartenmitte, Blick nach unten, Nord am oberen Rand. Anders als die beiden
-   * anderen Ansichten bleibt diese Kamera senkrecht – gedreht wird trotzdem frei
-   * über die Orbit-Controls.
+   * Draufsicht auf die ganze Karte: keine zweite Kamera, sondern die normale
+   * Kamera einfach fast senkrecht über die Kartenmitte gestellt (Nord oben).
+   * Deshalb ist der nächste Mausdrag sofort wieder die gewohnte schräge Ansicht –
+   * es gibt nichts, was sich dabei verzerren oder zurückschnappen könnte.
    */
   function showTopView(): void {
-    if (activeCamera !== orthoCamera) {
-      controls.dispose();
-      activeCamera = orthoCamera;
-      controls = createControls(orthoCamera);
-    }
-    orthoCamera.zoom = 1;
-    orthoCamera.position.set(0, 0, ORTHO_CAMERA_HEIGHT);
-    controls.target.set(0, 0, GRATICULE_Z); // Drehpunkt auf dem Gradnetz
-    fitOrthoToMap();
+    const bounds = worldBounds();
+    const center = bounds.min.clone().add(bounds.max).multiplyScalar(0.5);
+    const half = halfExtents(bounds).multiplyScalar(TOP_VIEW_FIT_MARGIN);
+    const distance = framingDistance(TOP_VIEW_DIRECTION, half);
+    controls.target.copy(center);
+    camera.position.copy(center).addScaledVector(TOP_VIEW_DIRECTION, distance);
     controls.update();
-  }
-
-  /**
-   * Siehbereich der Orthografiekamera aus der Kartenausdehnung und dem
-   * Seitenverhältnis des Containers. Bewusst "cover": beide Richtungen müssen
-   * passen, sonst wären die Gradzahlen am Rand abgeschnitten. Beim Ändern der
-   * Fenstergröße neu berechnet, damit die Karte immer ganz zu sehen ist.
-   */
-  function fitOrthoToMap(): void {
-    const halfLon = ((MAP_LON_MAX - MAP_LON_MIN) / 2) * ORTHO_FIT_MARGIN;
-    const halfLat = ((MAP_LAT_MAX - MAP_LAT_MIN) / 2) * ORTHO_FIT_MARGIN;
-    const aspect = (container.clientWidth || 1) / (container.clientHeight || 1);
-    const halfHeight = halfLon / aspect > halfLat ? halfLon / aspect : halfLat;
-    const halfWidth = halfHeight * aspect;
-    orthoCamera.left = -halfWidth;
-    orthoCamera.right = halfWidth;
-    orthoCamera.top = halfHeight;
-    orthoCamera.bottom = -halfHeight;
-    orthoCamera.far = ORTHO_CAMERA_HEIGHT + 5000;
-    orthoCamera.updateProjectionMatrix();
   }
 
   function resize(): void {
@@ -485,7 +448,6 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     renderer.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    fitOrthoToMap();
   }
 
   window.addEventListener('resize', resize);
@@ -502,7 +464,7 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
   renderer.setAnimationLoop(() => {
     controls.update();
     sizeLabels();
-    renderer.render(scene, activeCamera);
+    renderer.render(scene, camera);
   });
 
   return { update, resetView, showWorld, showTopView };
