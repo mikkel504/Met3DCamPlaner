@@ -23,9 +23,10 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
    „Pitch automatisch berechnen" neigt die Kamera je Keyframe so, dass sie vom Höhenunterschied
    her genau auf den Fokuspunkt blickt; ohne Anhaken wird der manuell eingetragene Pitch für
    alle Keyframes verwendet.
-4. **3D-Vorschau** (rechts) aktualisiert sich live: Fokuspunkt (pink), Keyframes (nummeriert,
-   erster Key orange), Pfadlinie und Blickrichtungspfeile. Drehen/Zoomen mit der Maus,
-   „Ansicht zurücksetzen" stellt die Standardansicht wieder her.
+4. **3D-Vorschau** (rechts) aktualisiert sich live: Kartengrundlage (Weltkarte), Fokuspunkt
+   (pink), Keyframes (nummeriert, erster Key orange), Pfadlinie und Blickrichtungspfeile.
+   Drehen/Zoomen mit der Maus, „Ansicht zurücksetzen" stellt die Ansicht wieder her, die die
+   ganze Kamerafahrt zeigt (nicht die ganze Welt).
 5. **Export** – „XML herunterladen" speichert `<name>.xml`; alternativ „In Zwischenablage
    kopieren". Die XML-Vorschau zeigt den exakten Dateiinhalt. Export ist deaktiviert,
    solange Validierungsfehler vorliegen.
@@ -65,6 +66,29 @@ Der Export folgt exakt der Referenzstruktur (`reference/Base_Sequence.xml`):
   (Standard: aus).
 - Die Pfadlinie in der Vorschau ist eine Catmull-Rom-Näherung und kann von der
   Interpolation in Met.3D abweichen.
+- Die Vorschau ist eine **ebene** Kartenebene (x = Lon, y = Lat in Grad), Met.3D zeigt die Erde
+  als **Globus**. Für kleine Radii (einige Grad) ist das praktisch identisch; bei großen
+  Radien (wie in der Referenzdatei mit 50°-Abständen) ist der ebene Kreis auf der Karte etwas
+  anderes als die Bahn auf dem Globus – die Vorschau ist eine Kartendarstellung, keine
+  Globus-Simulation.
+
+## Kartengrundlage (Weltkarte)
+
+Die 3D-Vorschau liegt dauerhaft auf einer equirektangulären Weltkarte:
+`public/worldmap.jpg` (Natural Earth, *Cross Blended Hypso with Shaded Relief, Water, and
+Drainages*, Public Domain, 3240 × 1620 px, ~0,45 MB). Eingebaut in `src/view3d/basemap.ts`,
+unsichtbar bis die Textur geladen ist – ohne die Karte funktioniert die Vorschau weiter.
+
+- Die Karte sitzt auf einer Ebene bei `z = −1` (damit Gitter und Achsen nie mit der Textur
+  zocken) und spannt exakt `lon −180…180`, `lat −90…90` auf. Sie ist **nur visuell** und hat
+  keinen Einfluss auf die exportierte XML.
+- Warum das ohne Verzerrung passt: ein equirektangulaires Kartenbild ist 2:1 (360° zu 180°),
+  und unsere Ebene ist in Grad gemessen ebenfalls 360 × 180 Einheiten. „2:1-Bild" und
+  „1:1-Grad-Achse" sind also dieselbe Projektion – es muss nichts umgerechnet werden.
+- Andere Karte verwenden: eigene (equirektanguläre!) Datei unter `public/` ablegen und
+  `BASEMAP_FILE` in `src/view3d/basemap.ts` anpassen. Zeigt die PNG/TIF nur einen
+  Ausschnitt, müssen `LON_SPAN`/`LAT_SPAN` (und die Lage der Ebene) entsprechend gesetzt
+  werden. Als Dateiformat ist JPEG für Fotokarten deutlich kleiner als PNG.
 
 ## Entwicklung
 

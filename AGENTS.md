@@ -21,6 +21,10 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   `REFERENCE_TENSION_XML` für den Snapshot-Test); Typ-Erweiterungen
   `CommonParams.advanceTimestep`, `PathType.isClosed` / `validate` / `minKeyframes`,
   `ParamField.exclusiveMin`, `CommonField.kind: 'checkbox'` und `CommonField.disables`.
+  Kartengrundlage in der 3D-Vorschau: `public/worldmap.jpg` (Natural Earth, equirektangulär,
+  3240 × 1620 px, ~0,45 MB) als Ebene bei `z = -1`, immer an, ohne Einfluss auf die XML
+  (`src/view3d/basemap.ts`). Das Original liegt als GeoTIFF außerhalb des Repos
+  (`Desktop/HYP_LR_SR_W_DR/`, 393 MB) und ist auf die Web-Größe heruntergerechnet.
 - **In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` = horizontal,
   `pitch > 90` blickt nach **oben**, `pitch < 90` nach **unten**. Die Auto-Pitch-Formel
   lautet deshalb `90 − atan2(Δz, Horizontaldistanz)` (Vorzeichen korrigiert).
@@ -133,21 +137,27 @@ Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norde
 ├─ AGENTS.md
 ├─ README.md
 ├─ reference/Base_Sequence.xml
+├─ public/worldmap.jpg     # Kartengrundlage (Natural Earth, equirektangulär)
 ├─ index.html
 ├─ vite.config.ts
 ├─ .github/workflows/deploy.yml
 └─ src/
    ├─ core/                 # reine Logik, KEIN DOM, KEIN three.js
    │  ├─ types.ts
+   │  ├─ constants.ts       # Defaults (u. a. DEFAULT_TENSION_XML, DEFAULT_LOOP)
+   │  ├─ fields.ts          # COMMON_FIELDS / COMMON_DEFAULTS (_basis für UI-Felder)
    │  ├─ paths/
    │  │  ├─ index.ts        # Registry aller Pfadtypen
-   │  │  └─ circle.ts       # V1: Vollkreis
+   │  │  └─ circle.ts       # V1: Vollkreis (startAngle, sweepAngle)
    │  ├─ yaw.ts             # computeYaw
+   │  ├─ pitch.ts           # computeAutoPitch
    │  ├─ loop.ts            # applyLoop (Option: Key am Ende wiederholt den ersten)
    │  ├─ xml.ts             # buildSequenceXml
    │  └─ validate.ts
    ├─ ui/                   # Formular, Download-Button, Fehleranzeige
    ├─ view3d/               # three.js-Szene, Achsen, Pfad, Keyframe-Marker
+   │  ├─ preview.ts
+   │  └─ basemap.ts         # Weltkarte als Ebene bei z = -1
    └─ main.ts
 ```
 
@@ -232,6 +242,11 @@ Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderu
 - Orbit-Controls (drehen, zoomen, verschieben), Button „Ansicht zurücksetzen“.
 - Vorschau aktualisiert sich **live** bei jeder Eingabeänderung (Debounce ca. 100 ms).
 - Ein Z-up-Koordinatensystem verwenden (`camera.up.set(0, 0, 1)`), damit z der Höhe entspricht.
+- Kartengrundlage: equirektanguläre Weltkarte aus `public/` als Textur auf einer Ebene bei
+  `z = -1` (immer an, rein visuell, kein Einfluss auf die XML). Die Karte spannt exakt
+  `lon -180…180` / `lat -90…90` auf – bei unseren Grad-Achsen (360 × 180 Einheiten) ist das
+  verzerrungsfrei. Implementiert in `view3d/basemap.ts`, bei Ladefehler bleibt die Vorschau
+  ohne Karte funktionsfähig.
 
 ### 6.4 Export
 

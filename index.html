@@ -31,7 +31,9 @@
         <div id="preview-notice" class="preview-notice" role="status"></div>
         <p class="preview-hint">
           Die Pfadlinie ist eine Catmull-Rom-Näherung und kann von der Interpolation in
-          Met.3D abweichen. Pfeile zeigen die Blickrichtung je Keyframe.
+          Met.3D abweichen. Pfeile zeigen die Blickrichtung je Keyframe. Die Weltkarte ist
+          eine equirektanguläre Hilfsebene (x = Längengrad, y = Breitengrad) und hat keinen
+          Einfluss auf die XML.
         </p>
       </section>
     </main>
@@ -40,6 +42,11 @@
       <p>
         Exportierte Datei einmal in Met.3D laden und prüfen. Format: Base_Sequence.xml
         (<code>&lt;!DOCTYPE CameraSequence&gt;</code>).
+      </p>
+      <p>
+        Kartengrundlage: Natural Earth,
+        <em>Cross Blended Hypso with Shaded Relief, Water, and Drainages</em> (Public
+        Domain), als <code>public/worldmap.jpg</code> eingebunden.
       </p>
     </footer>
 

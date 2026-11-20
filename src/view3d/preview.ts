@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { createBasemap } from './basemap';
 import type { CommonParams, ParamRecord, PathType, SequenceKey } from '../core/types';
 
 /**
@@ -8,6 +9,7 @@ import type { CommonParams, ParamRecord, PathType, SequenceKey } from '../core/t
  * Koordinaten: Z-up – x = Längengrad (Ost), y = Breitengrad (Nord), z = Höhe.
  * ANNAHME: lat/lon werden für die Vorschau wie rechtwinklige Kartekoordinaten
  * behandelt (entspricht der Kreisberechnung in core/paths/circle.ts).
+ * Kartengrundlage: equirektanguläre Weltenkarte in public/, siehe basemap.ts.
  */
 
 const COLOR_FOCUS = 0xff3366;
@@ -124,7 +126,11 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
 
   const staticGroup = new THREE.Group();
   const dynamicGroup = new THREE.Group();
-  scene.add(staticGroup, dynamicGroup);
+  // Eigene Gruppe: wird bei jedem rebuild von staticGroup verworfen, die
+  // Kartentextur soll aber genau einmal geladen werden.
+  const basemap = createBasemap();
+  scene.add(staticGroup, dynamicGroup, basemap.group);
+  void basemap.load(renderer);
 
   let palette = readPalette();
   let lastState:
@@ -138,6 +144,7 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     staticGroup.clear();
     palette = readPalette();
     scene.background = new THREE.Color(palette.background);
+    basemap.setPalette(palette.axis);
 
     const extent = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, 10);
     const span = Math.max(bounds.max.z - bounds.min.z, extent * 0.2, 10);
