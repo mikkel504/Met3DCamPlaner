@@ -105,24 +105,17 @@ describe('circlePath.generate – Teilkreis', () => {
   });
 });
 
-describe('circlePath.generate – Längengrad-Korrektur', () => {
-  it('ohne Korrektur: Radius direkt in Grad der Kartenebene', () => {
+describe('circlePath.generate – Grad der Kartenebene', () => {
+  it('trägt den Radius ohne cos(lat)-Skalierung in lat/lon ein', () => {
+    // Bewusst keine Längengrad-Korrektur: die Referenzdatei behandelt lat/lon
+    // wie rechtwinklige Kartekoordinaten, und die Vorschau nutzt dieselbe Ebene.
     const keys = circlePath.generate(
-      common({ focusLat: 45 }),
-      circleParams({ radius: 10, startAngle: 0, sweepAngle: CIRCLE_FULL_SWEEP, correctLonDistortion: false }),
+      common({ focusLat: 60 }),
+      circleParams({ radius: 10, startAngle: 0, sweepAngle: CIRCLE_FULL_SWEEP }),
     );
     // startAngle 0° = östliche Richtung: Verschiebung um genau radius Grad Längengrad.
     expect(at(keys, 0).lon).toBeCloseTo(10);
-    expect(at(keys, 0).lat).toBeCloseTo(45); // keine Nord-Süd-Verschiebung
-  });
-
-  it('mit Korrektur: lon-Offset durch cos(lat) geteilt', () => {
-    const keys = circlePath.generate(
-      common({ focusLat: 60 }),
-      circleParams({ radius: 10, startAngle: 0, sweepAngle: CIRCLE_FULL_SWEEP, correctLonDistortion: true }),
-    );
-    const expected = 10 / Math.cos((60 * Math.PI) / 180);
-    expect(at(keys, 0).lon).toBeCloseTo(expected, 6);
+    expect(at(keys, 0).lat).toBeCloseTo(60); // keine Nord-Süd-Verschiebung
   });
 });
 

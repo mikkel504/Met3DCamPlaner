@@ -20,7 +20,6 @@ export interface CircleParams extends ParamRecord {
   sweepAngle: number;
   /** +1 = im Uhrzeigersinn, -1 = gegen den Uhrzeigersinn */
   direction: number;
-  correctLonDistortion: boolean;
 }
 
 export const CIRCLE_FULL_SWEEP = 360;
@@ -51,7 +50,6 @@ export const circlePath: PathType<CircleParams> = {
     startAngle: 0,
     sweepAngle: CIRCLE_FULL_SWEEP,
     direction: 1,
-    correctLonDistortion: false,
   },
   paramSchema: [
     {
@@ -91,12 +89,6 @@ export const circlePath: PathType<CircleParams> = {
       ],
       help: 'Blick von oben auf die Karte.',
     },
-    {
-      key: 'correctLonDistortion',
-      label: 'Längengrad-Verzerrung korrigieren',
-      kind: 'checkbox',
-      help: 'Teilt den Längengrad-Abstand durch cos(Breite), damit der Kreis auf der Erde kreisförmig wirkt. (ANNAHME: Korrektur am Fokuspunkt.)',
-    },
   ],
 
   generate(common: CommonParams, params: CircleParams) {
@@ -109,17 +101,10 @@ export const circlePath: PathType<CircleParams> = {
       const thetaDeg = params.startAngle + params.direction * i * (params.sweepAngle / stepDivisor);
       const theta = (thetaDeg * Math.PI) / 180;
 
-      // Karte: lat = y-Achse (Nord), lon = x-Achse (Ost).
+      // Karte: lat = y-Achse (Nord), lon = x-Achse (Ost). Der Radius wird wie in
+      // der Referenzdatei direkt in Grad der Kartenebene eingetragen.
       const lat = common.focusLat + params.radius * Math.sin(theta);
-      let lonOffset = params.radius * Math.cos(theta);
-      if (params.correctLonDistortion) {
-        // ANNAHME: Division durch cos(breite des Fokuspunkts).
-        const cosLat = Math.cos((common.focusLat * Math.PI) / 180);
-        if (Math.abs(cosLat) > Number.EPSILON) {
-          lonOffset /= cosLat;
-        }
-      }
-      const lon = common.focusLon + lonOffset;
+      const lon = common.focusLon + params.radius * Math.cos(theta);
 
       keys.push({
         advanceTimestep: common.advanceTimestep,

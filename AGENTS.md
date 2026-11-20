@@ -12,7 +12,7 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
 - **Versionen (wegen lokale Node 18.13 gepinnt):** Vite ^5.4, Vitest ^2.1, three ^0.169,
   TypeScript ^5.5, ESLint ^9 + typescript-eslint ^8, `@types/node` ^20.
   `EBADENGINE`-Warnungen bei `npm install` sind harmlos; der CI-Workflow nutzt Node 20.
-- **Grün:** 6 Testdateien / 53 Tests, `npm run lint`, `npm run build`
+- **Grün:** 6 Testdateien / 52 Tests, `npm run lint`, `npm run build`
 - **Umgesetzt:** Schritte 1–7 aus Abschnitt 11. **Offen:** Schritt 8
   (Halbkreis, Viertelkreis, Gerade – nur neue `PathType`-Dateien plus Registry-Eintrag).
 - **Umgesetzt über die Ursprungsvorgabe hinaus:** Pitch wählbar automatisch/manuell
@@ -25,6 +25,8 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   3240 × 1620 px, ~0,45 MB) als Ebene bei `z = -1`, immer an, ohne Einfluss auf die XML
   (`src/view3d/basemap.ts`). Das Original liegt als GeoTIFF außerhalb des Repos
   (`Desktop/HYP_LR_SR_W_DR/`, 393 MB) und ist auf die Web-Größe heruntergerechnet.
+- **Entfernt auf Wunsch (November 2026):** Checkbox „Längengrad-Verzerrung korrigieren"
+  (`correctLonDistortion`) aus `circle.ts` – wurde nicht gebraucht. Nicht wieder einführen.
 - **In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` = horizontal,
   `pitch > 90` blickt nach **oben**, `pitch < 90` nach **unten**. Die Auto-Pitch-Formel
   lautet deshalb `90 − atan2(Δz, Horizontaldistanz)` (Vorzeichen korrigiert).
@@ -230,7 +232,8 @@ Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderu
 - Winkel `θᵢ = startAngle + dir · i · sweep / N`
 - Bei Vollkreis (`sweep = 360`) **ohne** doppelten Endpunkt: `N` Keys, Schrittweite `360 / N`. Bei Teilkreisen (`sweep < 360`) `N − 1` Intervalle, sodass Start- und Endpunkt enthalten sind.
 - Position: `lat = focusLat + r · sin θ`, `lon = focusLon + r · cos θ` (Radius in Grad in der Kartenebene wie in der Referenz).
-- Optionale Checkbox „Längengrad-Verzerrung korrigieren“ (`lon`-Offset durch `cos(lat)` teilen), Default **aus**.
+  Eine `cos(lat)`-Korrektur des Längengrads wurde im November 2026 **entfernt** – Referenzdatei und
+  Vorschau rechnen beide in Grad der Kartenebene, die Option wurde nicht gebraucht.
 - `yaw` je Key über `computeYaw(Kameraposition → Fokuspunkt)`.
 - Mindestens 3 Keyframes bei Vollkreis, mindestens 2 bei Teilkreis/Gerade.
 

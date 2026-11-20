@@ -12,8 +12,7 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
 
 1. **Fokuspunkt** – Breite (Lat), Länge (Lon) und Höhe des Punktes, um den die Kamera fliegt.
 2. **Kamerafahrt** – Fahrttyp wählen, Radius (in Grad der Kartenebene), Startwinkel,
-   Umlaufwinkel (360° = voller Kreis, 180° = Halbkreis), Umlaufrichtung, optional
-   „Längengrad-Verzerrung korrigieren".
+   Umlaufwinkel (360° = voller Kreis, 180° = Halbkreis), Umlaufrichtung.
 3. **Kamera-Einstellungen** – Kamerahöhe `z`, Anzahl Keyframes, „Geschlossener Loop",
    Pitch (automatisch oder manuell, siehe unten), Roll, Transition, `advanceTimestep`,
    Name und Tension der Kurve (Standard `0.05`).
@@ -61,9 +60,9 @@ Der Export folgt exakt der Referenzstruktur (`reference/Base_Sequence.xml`):
   (`pitch = 90 − atan2(cameraZ − focusZ, horizontale Distanz)`, `src/core/pitch.ts`) –
   die Kamera blickt vom Höhenunterschied her genau auf den Fokuspunkt.
 - Radius wird wie in der Referenz in **Grad** der Kartenebene gerechnet
-  (`lat = focus + r·sin θ`, `lon = focus + r·cos θ`); Startwinkel 0° = Osten.
-- Die „Längengrad-Verzerrung korrigieren"-Option teilt den Lon-Abstand durch cos(Breite)
-  (Standard: aus).
+  (`lat = focus + r·sin θ`, `lon = focus + r·cos θ`); Startwinkel 0° = Osten. Eine
+  cos(Breite)-Korrektur des Längengrads gibt es bewusst nicht (November 2026 entfernt) –
+  Referenzdatei und Vorschau arbeiten beide in Grad der Kartenebene.
 - Die Pfadlinie in der Vorschau ist eine Catmull-Rom-Näherung und kann von der
   Interpolation in Met.3D abweichen.
 - Die Vorschau ist eine **ebene** Kartenebene (x = Lon, y = Lat in Grad), Met.3D zeigt die Erde
