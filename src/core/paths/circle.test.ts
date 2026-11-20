@@ -140,7 +140,7 @@ describe('circlePath.generate – autoPitch', () => {
       common({ autoPitch: true, cameraZ: 25, focusZ: 0, pitch: 45 }),
       circleParams({ radius: 20, sweepAngle: CIRCLE_FULL_SWEEP }),
     );
-    const expected = 90 + (Math.atan2(25, 20) * 180) / Math.PI;
+    const expected = 90 - (Math.atan2(25, 20) * 180) / Math.PI;
     for (const key of keys) {
       // Horizontaler Abstand ist auf dem Kreis überall = radius.
       expect(key.pitch).toBeCloseTo(expected, 6);

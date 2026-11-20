@@ -7,22 +7,23 @@ describe('computeAutoPitch', () => {
   });
 
   it('neigt sich nach unten, wenn die Kamera über dem Fokus liegt', () => {
-    // 50° horizontaler Abstand, 25 Einheiten höher: 90 + atan(25/50) ≈ 116.57.
+    // Met.3D-Konvention (Import-Test 2026-11-20): < 90 blickt nach unten.
+    // 50° horizontaler Abstand, 25 Einheiten höher: 90 − atan(25/50) ≈ 63.43.
     const pitch = computeAutoPitch(0, 50, 25, 0, 0, 0);
-    expect(pitch).toBeCloseTo(90 + (Math.atan2(25, 50) * 180) / Math.PI);
-    expect(pitch).toBeGreaterThan(90);
-    expect(pitch).toBeLessThan(180);
-  });
-
-  it('neigt sich nach oben, wenn die Kamera unter dem Fokus liegt', () => {
-    const pitch = computeAutoPitch(0, 50, 0, 0, 0, 25);
+    expect(pitch).toBeCloseTo(90 - (Math.atan2(25, 50) * 180) / Math.PI);
     expect(pitch).toBeLessThan(90);
     expect(pitch).toBeGreaterThan(0);
   });
 
-  it('blickt fast senkrecht nach unten, direkt über dem Fokus', () => {
+  it('neigt sich nach oben, wenn die Kamera unter dem Fokus liegt', () => {
+    const pitch = computeAutoPitch(0, 50, 0, 0, 0, 25);
+    expect(pitch).toBeGreaterThan(90);
+    expect(pitch).toBeLessThan(180);
+  });
+
+  it('blickt senkrecht nach unten, direkt über dem Fokus', () => {
     const pitch = computeAutoPitch(0, 0, 25, 0, 0, 0);
-    expect(pitch).toBeCloseTo(180);
+    expect(pitch).toBeCloseTo(0);
   });
 
   it('liefert für identische Positionen ohne Höhenunterschied 90°', () => {

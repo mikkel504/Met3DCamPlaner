@@ -43,13 +43,14 @@ function readPalette(): Palette {
  * horizontale Richtung = (−sin yaw, cos yaw).
  * Probe über Referenzkey NO (lat 50, lon 50, yaw 135):
  * (−sin 135, cos 135) = (−0.71, −0.71) -> genau Richtung Fokus (0, 0).
- * ANNAHME: pitch = 90 ist horizontal, größere Neigungen blicken nach unten –
- * dieselbe Konvention wie computeAutoPitch in core/pitch.ts.
+ * In Met.3D verifiziert (Test-Import 2026-11-20): pitch = 90 horizontal,
+ * > 90 blickt nach oben, < 90 nach unten – dieselbe Konvention wie
+ * computeAutoPitch in core/pitch.ts.
  */
 function viewDirection(yawDeg: number, pitchDeg: number): THREE.Vector3 {
   const yaw = (yawDeg * Math.PI) / 180;
-  // Elevationswinkel: 0 = horizontal, negativ = Blick nach unten.
-  const elevation = ((90 - pitchDeg) * Math.PI) / 180;
+  // Elevationswinkel: 0 = horizontal, positiv = Blick nach oben.
+  const elevation = ((pitchDeg - 90) * Math.PI) / 180;
   const horizontal = Math.cos(elevation);
   return new THREE.Vector3(
     -Math.sin(yaw) * horizontal,
