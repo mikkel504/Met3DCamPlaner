@@ -12,7 +12,7 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
 - **Versionen (wegen lokale Node 18.13 gepinnt):** Vite ^5.4, Vitest ^2.1, three ^0.169,
   TypeScript ^5.5, ESLint ^9 + typescript-eslint ^8, `@types/node` ^20.
   `EBADENGINE`-Warnungen bei `npm install` sind harmlos; der CI-Workflow nutzt Node 20.
-- **Grün:** 6 Testdateien / 52 Tests, `npm run lint`, `npm run build`
+- **Grün:** 6 Testdateien / 56 Tests, `npm run lint`, `npm run build`
 - **Umgesetzt:** Schritte 1–7 aus Abschnitt 11. **Offen:** Schritt 8
   (Halbkreis, Viertelkreis, Gerade – nur neue `PathType`-Dateien plus Registry-Eintrag).
 - **Umgesetzt über die Ursprungsvorgabe hinaus:** Pitch wählbar automatisch/manuell
@@ -22,9 +22,22 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   `CommonParams.advanceTimestep`, `PathType.isClosed` / `validate` / `minKeyframes`,
   `ParamField.exclusiveMin`, `CommonField.kind: 'checkbox'` und `CommonField.disables`.
   Kartengrundlage in der 3D-Vorschau: `public/worldmap.jpg` (Natural Earth, equirektangulär,
-  3240 × 1620 px, ~0,45 MB) als Ebene bei `z = -1`, immer an, ohne Einfluss auf die XML
+  3240 × 1620 px, ~0,45 MB) als Ebene bei `z = 0`, immer an, ohne Einfluss auf die XML
   (`src/view3d/basemap.ts`). Das Original liegt als GeoTIFF außerhalb des Repos
   (`Desktop/HYP_LR_SR_W_DR/`, 393 MB) und ist auf die Web-Größe heruntergerechnet.
+  Darüber 10°-Gradnetz über der ganzen Karte mit Randbeschriftung, die dauerhaft alle
+  30° eine Gradzahl zeigt (`src/view3d/graticule.ts`; ersetzt GridHelper + Skalenmarken).
+  Die Zahlen sitzen mittig auf der äußeren Randlinie (Breite am Westrand, Länge am Südrand)
+  und tragen die Himmelsrichtungs-Endung (`30 N`, `30 S`, `30 E`, `30 W`; am 0° ohne Endung);
+  die Ecke Süd-West trägt nur die Längenzahl, damit sich nichts überlagert.
+  Achsen in Kartenausdehnung ohne Pfeilkegel, z-Achse 90 Einheiten hoch,
+  Achsenbeschriftung am Achsenende. Alle Beschriftungen (Achsen wie Gradnetz) teilen sich
+  den Baustein `src/view3d/label.ts` und sind damit in jeder Zoomstufe exakt gleich groß.
+  `circle.ts` hat zwei Radien: `radius` (Halbachse Nord–Süd) und `radiusLon`
+  (Halbachse Ost–West) – gleiche Werte = Kreis, verschiedene = Ellipse.
+  Buttons „Ansicht zurücksetzen" und „Ganze Karte". Farben: Keyframes/Pfadlinie dunkelrot
+  (ohne Nummerierung, keine Loop-Beschriftung), Blickrichtungspfeile dunkelblau,
+  Fokuspunkt orange. UI-Schrift vergrößert (`html { font-size: 112.5% }`).
 - **Entfernt auf Wunsch (November 2026):** Checkbox „Längengrad-Verzerrung korrigieren"
   (`correctLonDistortion`) aus `circle.ts` – wurde nicht gebraucht. Nicht wieder einführen.
 - **In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` = horizontal,
@@ -150,7 +163,7 @@ Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norde
    │  ├─ fields.ts          # COMMON_FIELDS / COMMON_DEFAULTS (_basis für UI-Felder)
    │  ├─ paths/
    │  │  ├─ index.ts        # Registry aller Pfadtypen
-   │  │  └─ circle.ts       # V1: Vollkreis (startAngle, sweepAngle)
+   │  │  └─ circle.ts       # Voll-/Teilkreis, Kreis/Ellipse (radius + radiusLon)
    │  ├─ yaw.ts             # computeYaw
    │  ├─ pitch.ts           # computeAutoPitch
    │  ├─ loop.ts            # applyLoop (Option: Key am Ende wiederholt den ersten)
@@ -159,7 +172,9 @@ Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norde
    ├─ ui/                   # Formular, Download-Button, Fehleranzeige
    ├─ view3d/               # three.js-Szene, Achsen, Pfad, Keyframe-Marker
    │  ├─ preview.ts
-   │  └─ basemap.ts         # Weltkarte als Ebene bei z = -1
+   │  ├─ basemap.ts         # Weltkarte als Ebene bei z = 0
+   │  ├─ graticule.ts       # 10°-Gradnetz (ganze Karte) + Gradzahlen auf der Randlinie
+   │  └─ label.ts           # gemeinsamer Baustein für alle Text-Sprites (einheitliche Größe)
    └─ main.ts
 ```
 
@@ -212,7 +227,8 @@ Neue Kamerafahrten (Halbkreis, Viertel, Gerade …) werden **ausschließlich** a
 ### 6.1 Eingaben (V1)
 
 - Fokuspunkt: Breitengrad, Längengrad, (optional) Höhe `focusZ`
-- Radius (in Grad, siehe 6.2)
+- Radius (in Grad, siehe 6.2) – zwei Felder: `radius` (Halbachse Nord–Süd) und
+  `radiusLon` (Halbachse Ost–West); gleiche Werte = Kreis, verschiedene = Ellipse
 - Kamerahöhe `z`
 - Anzahl der Keyframes
 - Startwinkel, Umlaufrichtung (im / gegen den Uhrzeigersinn)
@@ -231,7 +247,7 @@ Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderu
 
 - Winkel `θᵢ = startAngle + dir · i · sweep / N`
 - Bei Vollkreis (`sweep = 360`) **ohne** doppelten Endpunkt: `N` Keys, Schrittweite `360 / N`. Bei Teilkreisen (`sweep < 360`) `N − 1` Intervalle, sodass Start- und Endpunkt enthalten sind.
-- Position: `lat = focusLat + r · sin θ`, `lon = focusLon + r · cos θ` (Radius in Grad in der Kartenebene wie in der Referenz).
+- Position: `lat = focusLat + r · sin θ`, `lon = focusLon + r₂ · cos θ` (Radien in Grad in der Kartenebene wie in der Referenz; `r = radius`, `r₂ = radiusLon`, identische Werte ergeben einen Kreis).
   Eine `cos(lat)`-Korrektur des Längengrads wurde im November 2026 **entfernt** – Referenzdatei und
   Vorschau rechnen beide in Grad der Kartenebene, die Option wurde nicht gebraucht.
 - `yaw` je Key über `computeYaw(Kameraposition → Fokuspunkt)`.
@@ -239,14 +255,27 @@ Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderu
 
 ### 6.3 3D-Vorschau
 
-- three.js-Szene mit beschrifteten Achsen: **Lon (x), Lat (y), z (Höhe)**, Gitterfläche (Grid) und Skalenmarken.
-- Darstellung: Fokuspunkt (auffälliger Marker), Keyframes (nummerierte Punkte, erster Key farblich hervorgehoben), interpolierter Pfad als Linie, Blickrichtung je Key als kurzer Pfeil.
+- three.js-Szene mit beschrifteten Achsen: **Lon (x), Lat (y), z (Höhe)**. Die Achsen
+  spannen die Kartenausdehnung auf (nur Linien, keine Pfeilkegel), die z-Achse ist
+  90 Einheiten hoch, jede Achsenbeschriftung sitzt am Ende der Achse. Alle Texte
+  (Achsen wie Gradnetz) nutzen den gemeinsamen Baustein `view3d/label.ts` und sind damit
+  in jeder Zoomstufe gleich groß. Das 10°-Gradnetz (`view3d/graticule.ts`)
+  deckt die ganze Karte ab (`lon -180…180`, `lat -90…90`), Äquator und Null-Meridian
+  stärker; die Gradzahl steht dauerhaft alle 30° mittig auf der äußeren Randlinie
+  (Lon am Südrand, Lat am Westrand) mit Himmelsrichtungs-Endung (`30 N`, `30 S`,
+  `150 E`, `120 W`, am 0° ohne Endung) – es ersetzt das frühere frei skalierte Gitter
+  mit Skalenmarken.
+- Darstellung: Fokuspunkt (orange Oktaeder), Keyframes (Punkte ohne Nummerierung,
+  dunkelrot, erster Key mit größerer Kugel, Loop-Key halbtransparent ohne Beschriftung),
+  interpolierter Pfad als Linie (dunkelrot), Blickrichtung je Key als kurzer Pfeil (dunkelblau).
 - Pfadlinie über Catmull-Rom-Spline (`THREE.CatmullRomCurve3`, `centripetal`/`tension` passend), nur als Näherung der Met.3D-Interpolation; im UI mit Hinweis kennzeichnen.
-- Orbit-Controls (drehen, zoomen, verschieben), Button „Ansicht zurücksetzen“.
+- Orbit-Controls (drehen, zoomen, verschieben), Buttons „Ansicht zurücksetzen" (rahmt die
+  Kamerafahrt) und „Ganze Karte" (rahmt die ganze Weltkarte, damit alle Randwerte sichtbar sind).
 - Vorschau aktualisiert sich **live** bei jeder Eingabeänderung (Debounce ca. 100 ms).
 - Ein Z-up-Koordinatensystem verwenden (`camera.up.set(0, 0, 1)`), damit z der Höhe entspricht.
 - Kartengrundlage: equirektanguläre Weltkarte aus `public/` als Textur auf einer Ebene bei
-  `z = -1` (immer an, rein visuell, kein Einfluss auf die XML). Die Karte spannt exakt
+  `z = 0` (immer an, rein visuell, kein Einfluss auf die XML; das Gradnetz liegt bei
+  `GRATICULE_Z = 0.5` darüber). Die Karte spannt exakt
   `lon -180…180` / `lat -90…90` auf – bei unseren Grad-Achsen (360 × 180 Einheiten) ist das
   verzerrungsfrei. Implementiert in `view3d/basemap.ts`, bei Ladefehler bleibt die Vorschau
   ohne Karte funktionsfähig.
@@ -277,6 +306,8 @@ Mit Vitest in `src/core/**/*.test.ts`:
 6. Validierung: jeder Fehlerfall mindestens ein Test.
 7. Auto-Pitch: Kamera über dem Fokus ergibt `pitch < 90` (Blick nach unten), unter dem Fokus `> 90`.
 8. `applyLoop`: mit Loop `N+1` Keys, letzter ist eine exakte Kopie des ersten; ohne Loop unverändert.
+9. Ellipse: `radius` wirkt auf `lat`, `radiusLon` auf `lon`; bei ungleichen Radien liegen alle
+   Keys auf der Ellipsengleichung, und die Validierung lehnt `radiusLon <= 0` ab.
 
 ## 8. UI/UX-Richtlinien
 

@@ -17,12 +17,14 @@ const previewRoot = document.getElementById('preview-canvas') as HTMLElement;
 const exportRoot = document.getElementById('export') as HTMLElement;
 const noticeRoot = document.getElementById('preview-notice') as HTMLElement;
 const resetBtn = document.getElementById('reset-view') as HTMLButtonElement;
+const worldBtn = document.getElementById('world-view') as HTMLButtonElement;
 
 const preview = setupPreview(previewRoot);
 const exportHandle = setupExport(exportRoot, () => form.rawValue('common.name'));
 const form = buildForm(formRoot, scheduleUpdate);
 
 resetBtn.addEventListener('click', () => preview.resetView());
+worldBtn.addEventListener('click', () => preview.showWorld());
 
 let debounceTimer: number | undefined;
 

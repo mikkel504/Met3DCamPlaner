@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { createBasemap } from './basemap';
+import { createBasemap, GRATICULE_Z, MAP_LAT_MAX, MAP_LAT_MIN, MAP_LON_MAX, MAP_LON_MIN } from './basemap';
+import { createGraticule, worldBounds } from './graticule';
+import type { GraticuleHandle, GraticuleOptions } from './graticule';
+import { makeLabelSprite, scaleLabelSprite } from './label';
 import type { CommonParams, ParamRecord, PathType, SequenceKey } from '../core/types';
 
 /**
@@ -9,32 +12,60 @@ import type { CommonParams, ParamRecord, PathType, SequenceKey } from '../core/t
  * Koordinaten: Z-up – x = Längengrad (Ost), y = Breitengrad (Nord), z = Höhe.
  * ANNAHME: lat/lon werden für die Vorschau wie rechtwinklige Kartekoordinaten
  * behandelt (entspricht der Kreisberechnung in core/paths/circle.ts).
- * Kartengrundlage: equirektanguläre Weltenkarte in public/, siehe basemap.ts.
+ * Kartengrundlage: equirektanguläre Weltkarte in public/, siehe basemap.ts;
+ * darüber liegt das 10°-Gradnetz mit Randbeschriftung aus graticule.ts. Alle
+ * Texte der Szene (Gradnetz-Zahlen und Achsen) nutzen denselben Baustein aus
+ * label.ts und sind dadurch in jeder Zoomstufe gleich groß.
  */
 
-const COLOR_FOCUS = 0xff3366;
-const COLOR_KEY = 0x2f7fd6;
-const COLOR_KEY_FIRST = 0xff8c1a;
-const COLOR_PATH = 0x2f7fd6;
-const COLOR_ARROW = 0x2fa64f;
+const COLOR_FOCUS = 0xff8c1a; // orange, hebt sich von dunkelrot ab
+const COLOR_KEY = 0x8b0000; // dunkelrot (Keyframes)
+const COLOR_PATH = 0x8b0000; // dunkelrot (Verbindungslinie)
+const COLOR_ARROW = 0x003399; // dunkelblau (Blickrichtung)
+
+/** z-Achse: 90 Grad (Welteinheiten) hoch. */
+const AXIS_Z_HEIGHT = 90;
+
+/** Abstand der Achsenbeschriftung über das Achsenende hinaus, in Welteinheiten. */
+const AXIS_LABEL_OFFSET = 4;
+
+/** Feste Blickrichtung der Automatik-Kamera (schräger Blick von Süd-Ost). */
+const VIEW_DIRECTION = new THREE.Vector3(0.8, -1.1, 0.9).normalize();
 
 export interface PreviewHandle {
   update(common: CommonParams, path: PathType, pathParams: ParamRecord, keys: SequenceKey[]): void;
+  /** Rahmt die aktuelle Kamerafahrt. */
   resetView(): void;
+  /** Rahmt die ganze Weltkarte, dann sind alle Gradnetz-Werte am Rand sichtbar. */
+  showWorld(): void;
 }
 
-interface Palette {
-  grid: number;
+interface Palette extends GraticuleOptions {
   axis: number;
-  text: string;
   background: number;
 }
 
 function readPalette(): Palette {
   const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   return dark
-    ? { grid: 0x3a3f46, axis: 0x8b93a1, text: '#c8ced8', background: 0x16181d }
-    : { grid: 0xc9ced6, axis: 0x6a7280, text: '#333a44', background: 0xf4f6f8 };
+    ? {
+        // Das Gradnetz liegt auf der farbigen Weltkarte, deshalb neutral und
+        // kontrastreicher als die UI-Rahmenfarbe.
+        lineColor: 0x5a626d,
+        majorLineColor: 0xdfe6ef,
+        textColor: '#e6e9ee',
+        textHalo: 'rgba(18,20,25,0.85)',
+        axis: 0x8b93a1,
+        background: 0x16181d,
+      }
+    : {
+        lineColor: 0x9aa3ae,
+        majorLineColor: 0x1c2128,
+        textColor: '#1c2128',
+        textHalo: 'rgba(255,255,255,0.9)',
+        axis: 0x6a7280,
+        background: 0xf4f6f8,
+      };
 }
 
 /**
@@ -59,38 +90,6 @@ function viewDirection(yawDeg: number, pitchDeg: number): THREE.Vector3 {
     Math.cos(yaw) * horizontal,
     Math.sin(elevation),
   );
-}
-
-function makeTextSprite(text: string, palette: Palette): THREE.Sprite {
-  const font = '600 48px system-ui, sans-serif';
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('Canvas-Kontext nicht verfügbar.');
-  }
-  ctx.font = font;
-  const width = Math.ceil(ctx.measureText(text).width) + 24;
-  canvas.width = width;
-  canvas.height = 72;
-  ctx.font = font;
-  ctx.fillStyle = palette.text;
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, 12, 36);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true }),
-  );
-  sprite.userData.canvasWidth = width;
-  return sprite;
-}
-
-/** Sprites skalieren, damit Text in allen Zoomstufen lesbar bleibt. */
-function fitSprite(sprite: THREE.Sprite, sceneScale: number): void {
-  const width = Number(sprite.userData.canvasWidth);
-  const factor = sceneScale / 100;
-  sprite.scale.set((width / 72) * factor, factor, 1);
 }
 
 function disposeObject(obj: THREE.Object3D): void {
@@ -133,46 +132,80 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
   void basemap.load(renderer);
 
   let palette = readPalette();
+  // Das Gradnetz gehört nicht zu staticGroup: es liegt immer über der ganzen
+  // Karte und würde bei jedem rebuild nur identisch entstehen.
+  let graticule: GraticuleHandle = createGraticule(palette);
+  scene.add(graticule.group);
+  let darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
   let lastState:
     | { common: CommonParams; path: PathType; pathParams: ParamRecord; keys: SequenceKey[] }
     | undefined;
   let homePosition = new THREE.Vector3(120, 120, 120);
   let homeTarget = new THREE.Vector3(0, 0, 0);
 
-  function rebuildStatic(bounds: { min: THREE.Vector3; max: THREE.Vector3 }): void {
+  /**
+   * Welteinheiten, die der Viewport-Höhe an der Position `position` entsprechen.
+   * Bewusst je Beschriftung gerechnet (Entfernung Kamera -> Sprite), damit Texte
+   * in unterschiedlicher Entfernung identisch groß auf dem Bildschirm erscheinen.
+   */
+  function viewHeightWorldAt(position: THREE.Vector3): number {
+    const distance = camera.position.distanceTo(position);
+    return 2 * distance * Math.tan((camera.fov * Math.PI) / 360);
+  }
+
+  /** Alle Beschriftungen auf konstante Bildschirmgröße bringen (siehe label.ts). */
+  function sizeLabels(): void {
+    for (const group of [staticGroup, dynamicGroup]) {
+      group.traverse((obj) => {
+        if (obj instanceof THREE.Sprite) {
+          scaleLabelSprite(obj, viewHeightWorldAt(obj.position));
+        }
+      });
+    }
+    graticule.updateLabels(viewHeightWorldAt);
+  }
+
+  /** Gradnetz in anderer Farbpalette bauen (Hell/Dunkel-Wechsel). */
+  function rebuildGraticule(): void {
+    graticule.dispose();
+    scene.remove(graticule.group);
+    graticule = createGraticule(palette);
+    scene.add(graticule.group);
+  }
+
+  function rebuildStatic(): void {
     disposeObject(staticGroup);
     staticGroup.clear();
-    palette = readPalette();
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (dark !== darkMode) {
+      darkMode = dark;
+      palette = readPalette();
+      rebuildGraticule();
+    }
     scene.background = new THREE.Color(palette.background);
     basemap.setPalette(palette.axis);
 
-    const extent = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, 10);
-    const span = Math.max(bounds.max.z - bounds.min.z, extent * 0.2, 10);
-    const step = niceStep(extent / 8);
-
-    // Gitterfläche in der Kartenebene z=0 (x=lon, y=lat).
-    const grid = new THREE.GridHelper(
-      Math.ceil((extent + span) / step) * step,
-      Math.max(1, Math.round((extent + span) / step)),
-      palette.grid,
-      palette.grid,
+    // Achsen in voller Kartenausdehnung (Grad), Beschriftung am jeweiligen
+    // Achsenende; das 10°-Gradnetz übernimmt das frühere, frei skalierte Gitter.
+    addAxis(
+      new THREE.Vector3(MAP_LON_MIN, 0, GRATICULE_Z),
+      new THREE.Vector3(MAP_LON_MAX, 0, GRATICULE_Z),
+      'Lon (x)',
+      palette,
     );
-    grid.rotation.x = Math.PI / 2; // GridHelper liegt in XY, wir brauchen XZ -> Z-up
-    staticGroup.add(grid);
-
-    // Achsen durch den Ursprung der Kartenebene.
-    const half = Math.ceil((extent + span) / 2 / step) * step;
-    addAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(half, 0, 0), 'Lon (x)', palette);
-    addAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, half, 0), 'Lat (y)', palette);
-    addAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, Math.max(span, step)), 'z', palette);
-
-    // Skalenmarken alle `step` Einheiten auf der Lon-Achse.
-    for (let v = step; v <= half; v += step) {
-      const label = makeTextSprite(String(Math.round(v * 100) / 100), palette);
-      label.position.set(v, -step * 0.3, 0);
-      fitSprite(label, extent);
-      staticGroup.add(label);
-    }
+    addAxis(
+      new THREE.Vector3(0, MAP_LAT_MIN, GRATICULE_Z),
+      new THREE.Vector3(0, MAP_LAT_MAX, GRATICULE_Z),
+      'Lat (y)',
+      palette,
+    );
+    addAxis(
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, AXIS_Z_HEIGHT),
+      'z',
+      palette,
+    );
   }
 
   function addAxis(from: THREE.Vector3, to: THREE.Vector3, text: string, pal: Palette): void {
@@ -180,17 +213,10 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     const material = new THREE.LineBasicMaterial({ color: pal.axis });
     staticGroup.add(new THREE.Line(geometry, material));
 
-    const dir = to.clone().sub(from);
-    const len = dir.length();
-    const head = new THREE.ConeGeometry(Math.max(len * 0.01, 0.5), Math.max(len * 0.04, 1.5), 12);
-    const mesh = new THREE.Mesh(head, new THREE.MeshBasicMaterial({ color: pal.axis }));
-    mesh.position.copy(to);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir.normalize());
-    staticGroup.add(mesh);
-
-    const label = makeTextSprite(text, pal);
-    label.position.copy(to).addScaledVector(dir, len * 0.06);
-    fitSprite(label, Math.max(len, 10));
+    // Beschriftung ans Achsenende – ohne Kegel/Pfeilspitze, nur Linie + Text.
+    const dir = to.clone().sub(from).normalize();
+    const label = makeLabelSprite(text, pal);
+    label.position.copy(to).addScaledVector(dir, AXIS_LABEL_OFFSET);
     staticGroup.add(label);
   }
 
@@ -224,32 +250,24 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     dropLine.computeLineDistances(); // Pflicht, damit dashed-Material funktioniert
     dynamicGroup.add(dropLine);
 
-    // Keyframes als nummerierte Punkte, erster Key hervorgehoben.
+    // Keyframes als Punkte (dunkelrot), erster Key durch größere Kugel
+    // hervorgehoben – ohne Nummerierung, gleiche Farbe wie die Verbindungslinie.
     const lastIndex = keys.length - 1;
     keys.forEach((key, i) => {
       const isFirst = i === 0;
-      // Loop-Key: liegt exakt auf dem ersten Key -> halbtransparent, eigene
-      // Beschriftung, ohne zweiten Blickrichtungs-Pfeil (wäre deckungsgleich).
+      // Loop-Key: liegt exakt auf dem ersten Key -> halbtransparent, ohne
+      // zweiten Blickrichtungs-Pfeil (wäre deckungsgleich) und ohne Beschriftung.
       const isLoopKey = i === lastIndex && i !== 0 && positions[i]?.equals(positions[0] ?? new THREE.Vector3());
       const pos = positions[i] ?? new THREE.Vector3();
-      const material = new THREE.MeshBasicMaterial({
-        color: isFirst || isLoopKey ? COLOR_KEY_FIRST : COLOR_KEY,
-      });
+      const material = new THREE.MeshBasicMaterial({ color: COLOR_KEY });
       if (isLoopKey) {
         material.transparent = true;
         material.opacity = 0.45;
       }
-      const sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(Math.max(scale * 0.06, 0.35), 16, 12),
-        material,
-      );
+      const radius = Math.max(scale * 0.06, 0.35) * (isFirst ? 1.6 : 1);
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), material);
       sphere.position.copy(pos);
       dynamicGroup.add(sphere);
-
-      const number = makeTextSprite(isLoopKey ? 'Loop' : String(i + 1), palette);
-      number.position.copy(pos).add(new THREE.Vector3(0, 0, Math.max(scale * 0.12, 0.6)));
-      fitSprite(number, scale * 4);
-      dynamicGroup.add(number);
 
       if (isLoopKey) {
         return;
@@ -302,11 +320,38 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     return { min, max };
   }
 
+  /**
+   * Kameraposition für eine Bounds berechnen. Die Blickrichtung ist fest, der
+   * Abstand wird aus der projizierten Ausdehnung der Box ermittelt – so passt
+   * sowohl eine kleine Kamerafahrt als auch die ganze Weltkarte.
+   */
   function frameCamera(bounds: { min: THREE.Vector3; max: THREE.Vector3 }): void {
     const center = bounds.min.clone().add(bounds.max).multiplyScalar(0.5);
-    const extent = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, 10);
+    const half = bounds.max.clone().sub(bounds.min).multiplyScalar(0.5);
+    half.x = Math.max(half.x, 5);
+    half.y = Math.max(half.y, 5);
+    half.z = Math.max(half.z, 5);
+
+    const dir = VIEW_DIRECTION;
+    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 0, 1), dir);
+    if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
+    right.normalize();
+    const up = new THREE.Vector3().crossVectors(dir, right).normalize();
+
+    // Ausdehnung der Box entlang der Bildschirmachsen (Abschätzung über Beträge).
+    const projected = (axis: THREE.Vector3): number =>
+      Math.abs(axis.x) * half.x + Math.abs(axis.y) * half.y + Math.abs(axis.z) * half.z;
+    const width = projected(right);
+    const height = projected(up);
+    const depth = projected(dir);
+
+    const tanHalfFov = Math.tan((camera.fov * Math.PI) / 360);
+    const distanceHeight = height / tanHalfFov;
+    const distanceWidth = width / (tanHalfFov * Math.max(camera.aspect, 0.1));
+    const distance = 1.1 * Math.max(distanceHeight, distanceWidth) + depth;
+
     homeTarget = center;
-    homePosition = center.clone().add(new THREE.Vector3(extent * 0.8, -extent * 1.1, extent * 0.9));
+    homePosition = center.clone().addScaledVector(dir, distance);
   }
 
   function update(
@@ -317,7 +362,7 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
   ): void {
     lastState = { common, path, pathParams, keys };
     const bounds = computeBounds(common, keys);
-    rebuildStatic(bounds);
+    rebuildStatic();
     rebuildDynamic(common, path, pathParams, keys);
     frameCamera(bounds);
   }
@@ -326,6 +371,15 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     if (lastState) {
       frameCamera(computeBounds(lastState.common, lastState.keys));
     }
+    camera.position.copy(homePosition);
+    controls.target.copy(homeTarget);
+    controls.update();
+  }
+
+  function showWorld(): void {
+    const bounds = worldBounds();
+    bounds.max.z = AXIS_Z_HEIGHT; // damit die z-Achse mit Beschriftung im Bild bleibt
+    frameCamera(bounds);
     camera.position.copy(homePosition);
     controls.target.copy(homeTarget);
     controls.update();
@@ -352,20 +406,11 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
 
   renderer.setAnimationLoop(() => {
     controls.update();
+    sizeLabels();
     renderer.render(scene, camera);
   });
 
-  return { update, resetView };
-}
-
-/** Schöne Schrittweite 1/2/5 * 10^n für Gitter und Achsen. */
-function niceStep(raw: number): number {
-  const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 0.001))));
-  const norm = raw / pow;
-  if (norm <= 1) return pow;
-  if (norm <= 2) return 2 * pow;
-  if (norm <= 5) return 5 * pow;
-  return 10 * pow;
+  return { update, resetView, showWorld };
 }
 
 function averageSpacing(points: THREE.Vector3[]): number {

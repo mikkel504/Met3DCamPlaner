@@ -6,7 +6,13 @@ import type { CommonParams } from '../types';
 function circleParams(overrides: Partial<CircleParams> = {}): CircleParams {
   // Doppel-Assertion nötig, weil CircleParams den Index-Signatur-Typ
   // ParamRecord erweitert und object spread sonst `| undefined` erzeugt.
-  return { ...circlePath.defaults, ...overrides } as CircleParams;
+  const merged = { ...circlePath.defaults, ...overrides } as CircleParams;
+  // Die meisten Tests rechnen bewusst mit dem Kreis: folgt der zweite Radius
+  // dem ersten, bleiben die Kreis-Assertions gültig.
+  if (overrides.radiusLon === undefined) {
+    merged.radiusLon = merged.radius;
+  }
+  return merged;
 }
 
 /** Index-Zugriff mit kurzer Assert-Message (noUncheckedIndexedAccess). */
@@ -116,6 +122,33 @@ describe('circlePath.generate – Grad der Kartenebene', () => {
     // startAngle 0° = östliche Richtung: Verschiebung um genau radius Grad Längengrad.
     expect(at(keys, 0).lon).toBeCloseTo(10);
     expect(at(keys, 0).lat).toBeCloseTo(60); // keine Nord-Süd-Verschiebung
+  });
+});
+
+describe('circlePath.generate – Ellipse (zwei Radien)', () => {
+  it('nutzt radius für Nord–Süd und radiusLon für Ost–West', () => {
+    const params = circleParams({ radius: 20, radiusLon: 40, sweepAngle: CIRCLE_FULL_SWEEP });
+    const keys = circlePath.generate(common({ keyframeCount: 4, focusLat: 10, focusLon: -5 }), params);
+    // startAngle 0° = Osten: nur Längengrad versoben, und zwar um radiusLon.
+    expect(at(keys, 0).lon).toBeCloseTo(-5 + 40, 6);
+    expect(at(keys, 0).lat).toBeCloseTo(10, 6);
+    // 90° = Norden: nur Breitengrad versoben, um radius.
+    expect(at(keys, 1).lat).toBeCloseTo(10 + 20, 6);
+    expect(at(keys, 1).lon).toBeCloseTo(-5, 6);
+  });
+
+  it('alle Keys liegen auf der Ellipse', () => {
+    const c = common({ keyframeCount: 12, focusLat: 8, focusLon: 30 });
+    const params = circleParams({ radius: 15, radiusLon: 60 });
+    for (const key of circlePath.generate(c, params)) {
+      const northSouth = (key.lat - c.focusLat) / params.radius;
+      const eastWest = (key.lon - c.focusLon) / params.radiusLon;
+      expect(northSouth * northSouth + eastWest * eastWest).toBeCloseTo(1, 6);
+    }
+  });
+
+  it('Defaults erzeugen einen Kreis (beide Radien gleich)', () => {
+    expect(circlePath.defaults.radius).toBe(circlePath.defaults.radiusLon);
   });
 });
 

@@ -11,11 +11,18 @@ import { computeYaw } from '../yaw';
 /**
  * Ein Kreis ist technisch alles zwischen Viertel- und Vollkreis
  * (AGENTS.md Abschnitt 5, Erweiterbarkeit): startAngle + sweepAngle
- * machen daraus Voll-, Halb- oder Viertelkreis.
+ * machen daraus Voll-, Halb- oder Viertelkreis. Zwei getrennte Halbachsen
+ * (radius für Nord–Süd, radiusLon für Ost–West) machen daraus zusätzlich
+ * eine Ellipse; gleiche Werte ergeben den klassischen Kreis.
  */
 export interface CircleParams extends ParamRecord {
-  /** Radius in Grad (Kartenebene, wie in der Referenzdatei) */
+  /** Halbachse in Breitengrad-Richtung (Nord–Süd), in Grad der Kartenebene */
   radius: number;
+  /**
+   * Halbachse in Längengrad-Richtung (Ost–West), in Grad der Kartenebene.
+   * Identisch zu `radius` entsteht ein Kreis, verschiedene Werte eine Ellipse.
+   */
+  radiusLon: number;
   startAngle: number;
   sweepAngle: number;
   /** +1 = im Uhrzeigersinn, -1 = gegen den Uhrzeigersinn */
@@ -44,9 +51,10 @@ export function validateCircle(params: CircleParams): Issue[] {
 
 export const circlePath: PathType<CircleParams> = {
   id: 'circle',
-  label: '360°-Kreis',
+  label: '360°-Kreis / Ellipse',
   defaults: {
     radius: 50,
+    radiusLon: 50,
     startAngle: 0,
     sweepAngle: CIRCLE_FULL_SWEEP,
     direction: 1,
@@ -54,12 +62,21 @@ export const circlePath: PathType<CircleParams> = {
   paramSchema: [
     {
       key: 'radius',
-      label: 'Radius',
+      label: 'Radius (Nord–Süd)',
       kind: 'number',
       unit: '°',
       exclusiveMin: 0,
       step: 1,
-      help: 'Abstand der Kamera zum Fokuspunkt, in Grad der Kartenebene (wie in der Referenzdatei).',
+      help: 'Abstand der Kamera zum Fokuspunkt in Breitengrad-Richtung, in Grad der Kartenebene (wie in der Referenzdatei).',
+    },
+    {
+      key: 'radiusLon',
+      label: 'Radius (Ost–West)',
+      kind: 'number',
+      unit: '°',
+      exclusiveMin: 0,
+      step: 1,
+      help: 'Abstand in Längengrad-Richtung. Gleicher Wert wie der erste Radius ergibt einen Kreis, ein anderer Wert eine Ellipse.',
     },
     {
       key: 'startAngle',
@@ -101,10 +118,11 @@ export const circlePath: PathType<CircleParams> = {
       const thetaDeg = params.startAngle + params.direction * i * (params.sweepAngle / stepDivisor);
       const theta = (thetaDeg * Math.PI) / 180;
 
-      // Karte: lat = y-Achse (Nord), lon = x-Achse (Ost). Der Radius wird wie in
-      // der Referenzdatei direkt in Grad der Kartenebene eingetragen.
+      // Karte: lat = y-Achse (Nord), lon = x-Achse (Ost). Beide Halbachsen werden
+      // wie in der Referenzdatei direkt in Grad der Kartenebene eingetragen –
+      // gleiche Werte ergeben einen Kreis, verschiedene eine Ellipse.
       const lat = common.focusLat + params.radius * Math.sin(theta);
-      const lon = common.focusLon + params.radius * Math.cos(theta);
+      const lon = common.focusLon + params.radiusLon * Math.cos(theta);
 
       keys.push({
         advanceTimestep: common.advanceTimestep,

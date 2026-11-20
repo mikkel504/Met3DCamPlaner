@@ -5,13 +5,15 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
 
 - **Live:** https://mikkel504.github.io/Met3DCamPlaner/ · Quellcode: https://github.com/mikkel504/Met3DCamPlaner
 - Läuft komplett im Browser (kein Backend), gehostet auf GitHub Pages.
-- Version 1: **360°-Kreisumrundung** um einen Fokuspunkt. Halbkreis/Viertelkreis sind über
-  „Umlaufwinkel" bereits möglich; weitere Fahrttypen (Gerade …) folgen als eigene `PathType`-Dateien.
+- Version 1: **360°-Kreis- bzw. Ellipsenumrundung** um einen Fokuspunkt (zwei getrennte Radien).
+  Halbkreis/Viertelkreis sind über „Umlaufwinkel" bereits möglich; weitere Fahrttypen
+  (Gerade …) folgen als eigene `PathType`-Dateien.
 
 ## Bedienung
 
 1. **Fokuspunkt** – Breite (Lat), Länge (Lon) und Höhe des Punktes, um den die Kamera fliegt.
-2. **Kamerafahrt** – Fahrttyp wählen, Radius (in Grad der Kartenebene), Startwinkel,
+2. **Kamerafahrt** – Fahrttyp wählen, beide Radien (in Grad der Kartenebene: Nord–Süd und
+   Ost–West; gleiche Werte = Kreis, verschiedene = Ellipse), Startwinkel,
    Umlaufwinkel (360° = voller Kreis, 180° = Halbkreis), Umlaufrichtung.
 3. **Kamera-Einstellungen** – Kamerahöhe `z`, Anzahl Keyframes, „Geschlossener Loop",
    Pitch (automatisch oder manuell, siehe unten), Roll, Transition, `advanceTimestep`,
@@ -22,10 +24,17 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
    „Pitch automatisch berechnen" neigt die Kamera je Keyframe so, dass sie vom Höhenunterschied
    her genau auf den Fokuspunkt blickt; ohne Anhaken wird der manuell eingetragene Pitch für
    alle Keyframes verwendet.
-4. **3D-Vorschau** (rechts) aktualisiert sich live: Kartengrundlage (Weltkarte), Fokuspunkt
-   (pink), Keyframes (nummeriert, erster Key orange), Pfadlinie und Blickrichtungspfeile.
-   Drehen/Zoomen mit der Maus, „Ansicht zurücksetzen" stellt die Ansicht wieder her, die die
-   ganze Kamerafahrt zeigt (nicht die ganze Welt).
+4. **3D-Vorschau** (rechts) aktualisiert sich live: Weltkarte mit 10°-Gradnetz über der
+   ganzen Karte und Gradbeschriftung auf der äußeren Randlinie (dauerhaft alle 30°, mit
+   Himmelsrichtungs-Endung – Längengrade am Südrand als `30 W`/`30 E`, Breitengrade am
+   Westrand als `30 N`/`30 S`), Fokuspunkt (orange),
+   Keyframes (dunkelrot, ohne Nummerierung, erster Key größer), Pfadlinie (dunkelrot) und
+   Blickrichtungspfeile (dunkelblau). Die Achsen (Lon/Lat/z) spannen die Karte auf – ohne
+   Pfeilkegel –, die z-Achse ist 90 Einheiten hoch, die Achsenbeschriftung sitzt am
+   Achsenende. Alle Beschriftungen – Achsen wie Gradnetz-Zahlen – nutzen denselben Baustein
+   (`src/view3d/label.ts`) und sind dadurch in jeder Zoomstufe exakt gleich groß.
+   Drehen/Zoomen mit der Maus; „Ansicht zurücksetzen" rahmt die Kamerafahrt, „Ganze Karte"
+   rahmt die ganze Weltkarte (dann sind alle Gradnetz-Werte am Rand zu sehen).
 5. **Export** – „XML herunterladen" speichert `<name>.xml`; alternativ „In Zwischenablage
    kopieren". Die XML-Vorschau zeigt den exakten Dateiinhalt. Export ist deaktiviert,
    solange Validierungsfehler vorliegen.
@@ -59,8 +68,10 @@ Der Export folgt exakt der Referenzstruktur (`reference/Base_Sequence.xml`):
   Dieselbe Konvention verwendet die automatische Pitch-Berechnung
   (`pitch = 90 − atan2(cameraZ − focusZ, horizontale Distanz)`, `src/core/pitch.ts`) –
   die Kamera blickt vom Höhenunterschied her genau auf den Fokuspunkt.
-- Radius wird wie in der Referenz in **Grad** der Kartenebene gerechnet
-  (`lat = focus + r·sin θ`, `lon = focus + r·cos θ`); Startwinkel 0° = Osten. Eine
+- Die Radien werden wie in der Referenz in **Grad** der Kartenebene gerechnet
+  (`lat = focus + r·sin θ`, `lon = focus + r₂·cos θ`); Startwinkel 0° = Osten. `r` ist die
+  Halbachse Nord–Süd, `r₂` (Feld „Radius (Ost–West)") die Halbachse Ost–West – gleiche Werte
+  ergeben einen Kreis, verschiedene eine Ellipse. Eine
   cos(Breite)-Korrektur des Längengrads gibt es bewusst nicht (November 2026 entfernt) –
   Referenzdatei und Vorschau arbeiten beide in Grad der Kartenebene.
 - Die Pfadlinie in der Vorschau ist eine Catmull-Rom-Näherung und kann von der
@@ -77,10 +88,15 @@ Die 3D-Vorschau liegt dauerhaft auf einer equirektangulären Weltkarte:
 `public/worldmap.jpg` (Natural Earth, *Cross Blended Hypso with Shaded Relief, Water, and
 Drainages*, Public Domain, 3240 × 1620 px, ~0,45 MB). Eingebaut in `src/view3d/basemap.ts`,
 unsichtbar bis die Textur geladen ist – ohne die Karte funktioniert die Vorschau weiter.
+Die Text-Bausteine der Vorschau (Gradnetz-Zahlen wie Achsenbeschriftungen) stammen gemeinsam
+aus `src/view3d/label.ts`.
 
-- Die Karte sitzt auf einer Ebene bei `z = −1` (damit Gitter und Achsen nie mit der Textur
-  zocken) und spannt exakt `lon −180…180`, `lat −90…90` auf. Sie ist **nur visuell** und hat
-  keinen Einfluss auf die exportierte XML.
+- Die Karte sitzt auf einer Ebene bei `z = 0` und spannt exakt `lon −180…180`, `lat −90…90`
+  auf. Direkt darüber liegt das 10°-Gradnetz (`src/view3d/graticule.ts`): eine Linie alle
+  10° über die ganze Karte, Äquator und Null-Meridian etwas stärker, dazu dauerhaft alle
+  30° eine Gradzahl mittig auf der äußeren Randlinie (Längengrade am Südrand als `120 W`,
+  Breitengrade am Westrand als `30 N`; am 0°-Wert ohne Endung). Karte und
+  Netz sind **nur visuell** und haben keinen Einfluss auf die exportierte XML.
 - Warum das ohne Verzerrung passt: ein equirektangulaires Kartenbild ist 2:1 (360° zu 180°),
   und unsere Ebene ist in Grad gemessen ebenfalls 360 × 180 Einheiten. „2:1-Bild" und
   „1:1-Grad-Achse" sind also dieselbe Projektion – es muss nichts umgerechnet werden.
@@ -100,7 +116,7 @@ npm run lint      # ESLint + tsc --noEmit
 ```
 
 **Struktur:** `src/core/` ist reine, vollständig getestete Logik (Typen, `computeYaw`,
-Kreisgenerierung, XML-Aufbau, Validierung). `src/ui/` (Formular aus Feld-Metadaten) und
+Kreis-/Ellipse-Generierung, XML-Aufbau, Validierung). `src/ui/` (Formular aus Feld-Metadaten) und
 `src/view3d/` (three.js-Vorschau, Z-up: x=Lon, y=Lat, z=Höhe) konsumieren nur deren Ausgabe.
 Neue Kamerafahrten werden ausschließlich als neue `PathType`-Datei in `src/core/paths/`
 plus Registry-Eintrag ergänzt – ohne Änderungen in UI oder Vorschau.

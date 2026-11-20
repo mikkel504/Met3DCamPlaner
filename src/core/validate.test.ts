@@ -11,7 +11,12 @@ function common(overrides: Partial<CommonParams> = {}): CommonParams {
 function params(overrides: Partial<CircleParams> = {}): ParamRecord {
   // Merged-Partial erzeugt `| undefined` auf bekannten Schlüsseln; für die
   // Validierungs-Tests ist das unproblematisch, deshalb die Assertion.
-  return { ...circlePath.defaults, ...overrides } as ParamRecord;
+  const merged = { ...circlePath.defaults, ...overrides } as CircleParams;
+  // Kreis-Annahme der Tests beibehalten: zweiter Radius folgt dem ersten.
+  if (overrides.radiusLon === undefined) {
+    merged.radiusLon = merged.radius;
+  }
+  return merged as ParamRecord;
 }
 
 /** Index-Zugriff mit kurzer Assert-Message (noUncheckedIndexedAccess). */
@@ -74,6 +79,13 @@ describe('validateParams', () => {
     expectErrorFor(issues, 'path.radius');
     const neg = validateParams(common(), circlePath, params({ radius: -10 }));
     expectErrorFor(neg, 'path.radius');
+  });
+
+  it('zweiter Radius (Ost–West) <= 0 ist ein Fehler', () => {
+    const issues = validateParams(common(), circlePath, params({ radiusLon: 0 }));
+    expectErrorFor(issues, 'path.radiusLon');
+    const nan = validateParams(common(), circlePath, params({ radiusLon: Number.NaN }));
+    expectErrorFor(nan, 'path.radiusLon');
   });
 
   it('Umlaufwinkel außerhalb 0…360 ist ein Fehler', () => {

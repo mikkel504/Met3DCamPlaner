@@ -1,3 +1,8 @@
+html {
+  /* Grundschrift größer gewählt (18px statt 16px): alle rem-Angaben skalieren mit. */
+  font-size: 112.5%;
+}
+
 :root {
   color-scheme: light dark;
   --bg: #f4f6f8;
@@ -43,17 +48,18 @@ body {
 
 .app-header h1 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
 }
 
 .app-header p {
   margin: 0.25rem 0 0;
   color: var(--muted);
+  font-size: 1rem;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(320px, 430px) 1fr;
+  grid-template-columns: minmax(340px, 470px) 1fr;
   gap: 1rem;
   padding: 1rem 1.5rem;
   align-items: start;
@@ -75,7 +81,7 @@ body {
 
 .form-group h2 {
   margin: 0 0 0.75rem;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
 }
 
 .field {
@@ -84,7 +90,7 @@ body {
 
 .field label {
   display: block;
-  font-size: 0.88rem;
+  font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.2rem;
 }
@@ -123,7 +129,7 @@ button:focus-visible,
 .field-inline label {
   margin: 0;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 1rem;
 }
 
 .field-inline input {
@@ -132,7 +138,7 @@ button:focus-visible,
 
 .help {
   margin: 0.25rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: var(--muted);
 }
 
@@ -142,7 +148,7 @@ button:focus-visible,
 
 .field-message {
   margin: 0.25rem 0 0;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
 }
 
 .field-message.error {
@@ -178,7 +184,8 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.export-buttons {
+.export-buttons,
+.preview-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -186,7 +193,7 @@ button:disabled {
 
 .xml-preview {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   min-height: 10rem;
   max-height: 22rem;
   resize: vertical;
@@ -197,7 +204,7 @@ button:disabled {
 .export-status {
   min-height: 1.2em;
   margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--muted);
 }
 
@@ -214,12 +221,13 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
 .preview-toolbar h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
 }
 
 .preview-canvas {
@@ -239,18 +247,18 @@ button:disabled {
 
 .preview-notice .warning {
   color: var(--warning);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   margin: 0.5rem 0 0;
 }
 
 .preview-hint {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   margin: 0.5rem 0 0;
 }
 
 .app-footer {
   padding: 0.5rem 1.5rem 1.5rem;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }

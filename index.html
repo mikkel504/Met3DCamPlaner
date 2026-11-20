@@ -25,7 +25,10 @@
       <section class="preview-column" aria-label="3D-Vorschau">
         <div class="preview-toolbar">
           <h2>3D-Vorschau</h2>
-          <button id="reset-view" type="button">Ansicht zurücksetzen</button>
+          <div class="preview-actions">
+            <button id="reset-view" type="button">Ansicht zurücksetzen</button>
+            <button id="world-view" type="button">Ganze Karte</button>
+          </div>
         </div>
         <div id="preview-canvas" class="preview-canvas"></div>
         <div id="preview-notice" class="preview-notice" role="status"></div>
@@ -33,7 +36,8 @@
           Die Pfadlinie ist eine Catmull-Rom-Näherung und kann von der Interpolation in
           Met.3D abweichen. Pfeile zeigen die Blickrichtung je Keyframe. Die Weltkarte ist
           eine equirektanguläre Hilfsebene (x = Längengrad, y = Breitengrad) und hat keinen
-          Einfluss auf die XML.
+          Einfluss auf die XML. Das Gradnetz liegt alle 10°, beschriftet auf der äußeren
+          Randlinie alle 30° – mit Himmelsrichtungs-Endung (z. B. „50 N“, „15 W“).
         </p>
       </section>
     </main>

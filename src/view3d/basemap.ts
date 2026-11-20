@@ -17,11 +17,21 @@ import * as THREE from 'three';
 const BASEMAP_FILE = 'worldmap.jpg';
 const LON_SPAN = 360;
 const LAT_SPAN = 180;
+
+// Ausdehnung der Karte in Grad – das Gradnetz (graticule.ts) deckt exakt
+// dieselbe Fläche ab und muss deshalb dieselben Grenzen benutzen.
+export const MAP_LON_MIN = -LON_SPAN / 2;
+export const MAP_LON_MAX = LON_SPAN / 2;
+export const MAP_LAT_MIN = -LAT_SPAN / 2;
+export const MAP_LAT_MAX = LAT_SPAN / 2;
 /**
- * Abstand der Kartenebene unter z = 0. Muss größer als 0 sein, sonst zockt
- * (Z-Fighting) das bei z = 0 liegende Gitter mit der Textur.
+ * Die Kartenebene liegt bei z = 0. Darüber liegen das Gradnetz (0.5) und seine
+ * Beschriftungen (1.2) – der Abstand verhindert Z-Fighting, ohne dass Achsen
+ * oder Keyframes sichtbar verschoben werden.
  */
-const BASEMAP_DEPTH = 1;
+const MAP_PLANE_Z = 0;
+export const GRATICULE_Z = 0.5;
+const BORDER_Z = GRATICULE_Z;
 
 export interface BasemapHandle {
   group: THREE.Group;
@@ -50,11 +60,11 @@ export function createBasemap(): BasemapHandle {
 
   const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(LON_SPAN, LAT_SPAN), material);
-  plane.position.z = -BASEMAP_DEPTH;
+  plane.position.z = MAP_PLANE_Z;
 
   const borderMaterial = new THREE.LineBasicMaterial({ color: 0x8b93a1 });
   const border = new THREE.LineLoop(borderGeometry(), borderMaterial);
-  border.position.z = -BASEMAP_DEPTH + 0.05;
+  border.position.z = BORDER_Z;
   group.add(plane, border);
 
   async function load(renderer: THREE.WebGLRenderer): Promise<boolean> {
