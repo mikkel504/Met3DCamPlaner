@@ -1,0 +1,256 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --text: #1c2128;
+  --muted: #5b6470;
+  --border: #d4dae2;
+  --accent: #2f7fd6;
+  --error: #b3261e;
+  --warning: #8a6d1a;
+  --field-bg: #fbfcfd;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d;
+    --panel: #1e222a;
+    --text: #e6e9ee;
+    --muted: #9aa3b0;
+    --border: #3a4150;
+    --accent: #5ea0ef;
+    --error: #ff6b60;
+    --warning: #d8b44a;
+    --field-bg: #242934;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.app-header {
+  padding: 1rem 1.5rem 0.5rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.app-header p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 430px) 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.field {
+  margin-bottom: 0.8rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.field input[type='number'],
+.field input[type='text'],
+.field select,
+.xml-preview {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--field-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+button:focus-visible,
+.xml-preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.field input.invalid {
+  border-color: var(--error);
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field-inline label {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.field-inline input {
+  width: auto;
+}
+
+.help {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.messages {
+  margin: 0;
+}
+
+.field-message {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+}
+
+.field-message.error {
+  color: var(--error);
+}
+
+.field-message.warning {
+  color: var(--warning);
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.xml-preview {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.75rem;
+  min-height: 10rem;
+  max-height: 22rem;
+  resize: vertical;
+  margin-bottom: 0.6rem;
+  white-space: pre;
+}
+
+.export-status {
+  min-height: 1.2em;
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.preview-column {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.preview-toolbar h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.preview-canvas {
+  width: 100%;
+  height: min(70vh, 640px);
+  min-height: 320px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.preview-notice .warning {
+  color: var(--warning);
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+.preview-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0.5rem 0 0;
+}
+
+.app-footer {
+  padding: 0.5rem 1.5rem 1.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}

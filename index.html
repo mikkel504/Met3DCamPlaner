@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Met.3D Kamerafahrten – Generator</title>
+    <meta
+      name="description"
+      content="Kamerafahrten für Met.3D konfigurieren, in 3D ansehen und als Base_Sequence-XML exportieren."
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Met.3D Kamerafahrten</h1>
+      <p>Kamerafahrt konfigurieren, in der 3D-Vorschau prüfen und als XML exportieren.</p>
+    </header>
+
+    <main class="layout">
+      <div class="form-column">
+        <form id="form" novalidate></form>
+        <div id="export"></div>
+      </div>
+
+      <section class="preview-column" aria-label="3D-Vorschau">
+        <div class="preview-toolbar">
+          <h2>3D-Vorschau</h2>
+          <button id="reset-view" type="button">Ansicht zurücksetzen</button>
+        </div>
+        <div id="preview-canvas" class="preview-canvas"></div>
+        <div id="preview-notice" class="preview-notice" role="status"></div>
+        <p class="preview-hint">
+          Die Pfadlinie ist eine Catmull-Rom-Näherung und kann von der Interpolation in
+          Met.3D abweichen. Pfeile zeigen die Blickrichtung je Keyframe.
+        </p>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>
+        Exportierte Datei einmal in Met.3D laden und prüfen. Format: Base_Sequence.xml
+        (<code>&lt;!DOCTYPE CameraSequence&gt;</code>).
+      </p>
+    </footer>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
