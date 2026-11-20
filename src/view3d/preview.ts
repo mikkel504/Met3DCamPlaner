@@ -218,20 +218,35 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     dynamicGroup.add(dropLine);
 
     // Keyframes als nummerierte Punkte, erster Key hervorgehoben.
+    const lastIndex = keys.length - 1;
     keys.forEach((key, i) => {
       const isFirst = i === 0;
+      // Loop-Key: liegt exakt auf dem ersten Key -> halbtransparent, eigene
+      // Beschriftung, ohne zweiten Blickrichtungs-Pfeil (wäre deckungsgleich).
+      const isLoopKey = i === lastIndex && i !== 0 && positions[i]?.equals(positions[0] ?? new THREE.Vector3());
       const pos = positions[i] ?? new THREE.Vector3();
+      const material = new THREE.MeshBasicMaterial({
+        color: isFirst || isLoopKey ? COLOR_KEY_FIRST : COLOR_KEY,
+      });
+      if (isLoopKey) {
+        material.transparent = true;
+        material.opacity = 0.45;
+      }
       const sphere = new THREE.Mesh(
         new THREE.SphereGeometry(Math.max(scale * 0.06, 0.35), 16, 12),
-        new THREE.MeshBasicMaterial({ color: isFirst ? COLOR_KEY_FIRST : COLOR_KEY }),
+        material,
       );
       sphere.position.copy(pos);
       dynamicGroup.add(sphere);
 
-      const number = makeTextSprite(String(i + 1), palette);
+      const number = makeTextSprite(isLoopKey ? 'Loop' : String(i + 1), palette);
       number.position.copy(pos).add(new THREE.Vector3(0, 0, Math.max(scale * 0.12, 0.6)));
       fitSprite(number, scale * 4);
       dynamicGroup.add(number);
+
+      if (isLoopKey) {
+        return;
+      }
 
       // Blickrichtung als kurzer Pfeil (yaw + pitch, zeigt bei autoPitch
       // räumlich auf den Fokuspunkt).
@@ -249,7 +264,15 @@ export function setupPreview(container: HTMLElement): PreviewHandle {
     });
 
     // Pfad als Catmull-Rom-Spline – nur Näherung der Met.3D-Interpolation.
-    const closed = path.isClosed ? path.isClosed(common, pathParams as never) : false;
+    const isClosedPath = path.isClosed ? path.isClosed(common, pathParams as never) : false;
+    // Loop-Option: Der letzte Key wiederholt den ersten. Der Spline schließt
+    // sich dann von selbst; closed=true würde zusätzlich eine null-lange
+    // Schleifensegment erzeugen (Singularität im centripetalen Catmull-Rom).
+    const first = positions[0];
+    const last = positions[positions.length - 1];
+    const closesSelf =
+      first !== undefined && last !== undefined && first.distanceTo(last) < 1e-6;
+    const closed = isClosedPath && !closesSelf;
     if (positions.length >= 2) {
       const curve = new THREE.CatmullRomCurve3(positions, closed, 'centripetal');
       const samples = Math.max(positions.length * 24, 64);

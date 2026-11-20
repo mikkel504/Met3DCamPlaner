@@ -2,6 +2,7 @@ import {
   DEFAULT_ADVANCE_TIMESTEP,
   DEFAULT_AUTO_PITCH,
   DEFAULT_CAMERA_Z,
+  DEFAULT_LOOP,
   DEFAULT_NAME,
   DEFAULT_PITCH,
   DEFAULT_ROLL,
@@ -74,6 +75,13 @@ export const COMMON_FIELDS: CommonField[] = [
     help: 'Mehr Keyframes ergeben eine glattere Fahrt.',
   },
   {
+    key: 'loop',
+    label: 'Geschlossener Loop',
+    kind: 'checkbox',
+    group: 'path',
+    help: 'Hängt am Ende einen zusätzlichen Keyframe exakt auf dem ersten an, damit die Fahrt in Met.3D nahtlos zum Start zurückkehrt. Die Anzahl Keyframes beschreibt dabei die Punkte auf der Bahn – der Loop-Key kommt zusätzlich dazu.',
+  },
+  {
     key: 'autoPitch',
     label: 'Pitch automatisch berechnen',
     kind: 'checkbox',
@@ -88,7 +96,7 @@ export const COMMON_FIELDS: CommonField[] = [
     group: 'camera',
     unit: '°',
     step: 5,
-    help: 'Neigung der Kamera. 90° bedeutet laut Referenzdatei: horizontal blickend. Nur relevant, wenn „Pitch automatisch berechnen“ nicht angehakt ist.',
+    help: 'Neigung der Kamera (in Met.3D verifiziert): 90° = horizontal, kleinere Werte blicken nach unten, größere nach oben. Nur relevant, wenn „Pitch automatisch berechnen“ nicht angehakt ist.',
   },
   {
     key: 'roll',
@@ -128,7 +136,7 @@ export const COMMON_FIELDS: CommonField[] = [
     kind: 'number',
     group: 'camera',
     step: 0.01,
-    help: 'Beeinflusst die Spline-Interpolation in Met.3D. Default: Wert der Referenzdatei.',
+    help: 'Beeinflusst die Spline-Interpolation in Met.3D. Standard: 0.05.',
   },
 ];
 
@@ -140,6 +148,7 @@ export const COMMON_DEFAULTS: CommonParams = {
   keyframeCount: 12,
   pitch: DEFAULT_PITCH,
   autoPitch: DEFAULT_AUTO_PITCH,
+  loop: DEFAULT_LOOP,
   roll: DEFAULT_ROLL,
   transition: DEFAULT_TRANSITION,
   advanceTimestep: DEFAULT_ADVANCE_TIMESTEP,

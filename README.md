@@ -14,8 +14,12 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
 2. **Kamerafahrt** – Fahrttyp wählen, Radius (in Grad der Kartenebene), Startwinkel,
    Umlaufwinkel (360° = voller Kreis, 180° = Halbkreis), Umlaufrichtung, optional
    „Längengrad-Verzerrung korrigieren".
-3. **Kamera-Einstellungen** – Kamerahöhe `z`, Anzahl Keyframes, Pitch (automatisch oder
-   manuell, siehe unten), Roll, Transition, `advanceTimestep`, Name und Tension der Kurve.
+3. **Kamera-Einstellungen** – Kamerahöhe `z`, Anzahl Keyframes, „Geschlossener Loop",
+   Pitch (automatisch oder manuell, siehe unten), Roll, Transition, `advanceTimestep`,
+   Name und Tension der Kurve (Standard `0.05`).
+   „Geschlossener Loop" hängt am Ende einen zusätzlichen Keyframe exakt auf dem ersten an,
+   damit die Fahrt in Met.3D nahtlos zum Start zurückkehrt; die Anzahl Keyframes beschreibt
+   nur die Punkte auf der Bahn, der Loop-Key kommt zusätzlich dazu.
    „Pitch automatisch berechnen" neigt die Kamera je Keyframe so, dass sie vom Höhenunterschied
    her genau auf den Fokuspunkt blickt; ohne Anhaken wird der manuell eingetragene Pitch für
    alle Keyframes verwendet.
@@ -36,7 +40,7 @@ Der Export folgt exakt der Referenzstruktur (`reference/Base_Sequence.xml`):
 
 ```xml
 <!DOCTYPE CameraSequence>
-<CameraSequence name="Sequence" tension="0.059999998658895493">
+<CameraSequence name="Sequence" tension="0.05">
   <SequenceKey advanceTimestep="0" isOrthographic="0" label="" lat="50" lon="50" pitch="90" roll="0" transition="1" yaw="135" z="25"/>
 </CameraSequence>
 ```
@@ -44,14 +48,17 @@ Der Export folgt exakt der Referenzstruktur (`reference/Base_Sequence.xml`):
 - Attributreihenfolge alphabetisch, 2 Leerzeichen Einrückung, UTF-8, Dezimaltrenner Punkt.
 - Ein Unit-Test vergleicht den Export der Referenz-Keys **Byte für Byte** mit der Referenzdatei.
 
-### Getroffene Annahmen (mit Met.3D zu verifizieren)
+### Annahmen und verifizierte Konventionen
 
 - `yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360` (Norden = 0°), abgeleitet aus den vier
   Referenz-Keys (135 / 45 / 315 / 225). Implementiert in `src/core/yaw.ts` (`// ANNAHME:`).
-- `pitch = 90` bedeutet „horizontal blickend". Größere Werte neigen nach unten, kleinere nach
-  oben – dieselbe Konvention verwendet die automatische Pitch-Berechnung
-  (`pitch = 90 + atan2(cameraZ − focusZ, horizontale Distanz)`, `src/core/pitch.ts`).
-  Beim Testen in Met.3D ggf. das Vorzeichen prüfen.
+  Beim Import der Testdatei bitte mitprüfen: die Blickrichtungspfeile in der Vorschau zeigen
+  auf den Fokuspunkt.
+- `pitch = 90` bedeutet „horizontal blickend"; **in Met.3D verifiziert (Import-Test
+  November 2026)**: Werte > 90° blicken nach oben, Werte < 90° nach unten.
+  Dieselbe Konvention verwendet die automatische Pitch-Berechnung
+  (`pitch = 90 − atan2(cameraZ − focusZ, horizontale Distanz)`, `src/core/pitch.ts`) –
+  die Kamera blickt vom Höhenunterschied her genau auf den Fokuspunkt.
 - Radius wird wie in der Referenz in **Grad** der Kartenebene gerechnet
   (`lat = focus + r·sin θ`, `lon = focus + r·cos θ`); Startwinkel 0° = Osten.
 - Die „Längengrad-Verzerrung korrigieren"-Option teilt den Lon-Abstand durch cos(Breite)

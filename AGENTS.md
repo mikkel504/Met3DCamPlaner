@@ -12,15 +12,19 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
 - **Versionen (wegen lokale Node 18.13 gepinnt):** Vite ^5.4, Vitest ^2.1, three ^0.169,
   TypeScript ^5.5, ESLint ^9 + typescript-eslint ^8, `@types/node` ^20.
   `EBADENGINE`-Warnungen bei `npm install` sind harmlos; der CI-Workflow nutzt Node 20.
-- **Grün:** 5 Testdateien / 47 Tests, `npm run lint`, `npm run build`
+- **Grün:** 6 Testdateien / 53 Tests, `npm run lint`, `npm run build`
 - **Umgesetzt:** Schritte 1–7 aus Abschnitt 11. **Offen:** Schritt 8
   (Halbkreis, Viertelkreis, Gerade – nur neue `PathType`-Dateien plus Registry-Eintrag).
 - **Umgesetzt über die Ursprungsvorgabe hinaus:** Pitch wählbar automatisch/manuell
-  (`autoPitch`, `src/core/pitch.ts`); Typ-Erweiterungen `CommonParams.advanceTimestep`,
-  `PathType.isClosed` / `validate` / `minKeyframes`, `ParamField.exclusiveMin`,
-  `CommonField.kind: 'checkbox'` und `CommonField.disables`.
-- **Noch in Met.3D zu verifizieren** (siehe Abschnitt 4): yaw-Formel, Bedeutung von
-  `pitch = 90`, Auto-Pitch-Formel `90 + atan2(Δz, Horizontaldistanz)`.
+  (`autoPitch`, `src/core/pitch.ts`); Loop-Checkbox (`CommonParams.loop`, `src/core/loop.ts`
+  hängt Kopie des ersten Keys an); UI-Default-Tension `0.05` (Referenzwert bleibt nur als
+  `REFERENCE_TENSION_XML` für den Snapshot-Test); Typ-Erweiterungen
+  `CommonParams.advanceTimestep`, `PathType.isClosed` / `validate` / `minKeyframes`,
+  `ParamField.exclusiveMin`, `CommonField.kind: 'checkbox'` und `CommonField.disables`.
+- **In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` = horizontal,
+  `pitch > 90` blickt nach **oben**, `pitch < 90` nach **unten**. Die Auto-Pitch-Formel
+  lautet deshalb `90 − atan2(Δz, Horizontaldistanz)` (Vorzeichen korrigiert).
+- **Noch in Met.3D zu verifizieren** (siehe Abschnitt 4): yaw-Formel (Blick zum Fokuspunkt?).
   `reference/Base_Sequence.xml` wurde aus der Spezifikation rekonstruiert – exportierte
   Datei daher unbedingt einmal in Met.3D laden.
 - **Lokal:** Dev-Server läuft auf 5173, ausnahmsweise 5174 wenn 5173 belegt ist;
@@ -81,7 +85,7 @@ Referenzdatei: `Base_Sequence.xml` (liegt im Repo unter `reference/Base_Sequence
 ### Regeln
 
 - Erste Zeile `<!DOCTYPE CameraSequence>` (kein `<?xml ...?>`-Header).
-- Wurzelelement `CameraSequence` mit Attributen `name` und `tension`. Default `tension="0.059999998658895493"`, `name="Sequence"`; beides in der UI änderbar.
+- Wurzelelement `CameraSequence` mit Attributen `name` und `tension`. UI-Default `tension="0.05"`, `name="Sequence"`; beides in der UI änderbar. Der Referenzwert `0.059999998658895493` steht nur noch als Konstante `REFERENCE_TENSION_XML` für den Snapshot-Test zur Verfügung.
 - Pro Keyframe ein selbstschließendes `<SequenceKey .../>` mit **2 Leerzeichen Einrückung**.
 - Attributreihenfolge **alphabetisch**, wie in der Referenz:
   `advanceTimestep, isOrthographic, label, lat, lon, pitch, roll, transition, yaw, z`
@@ -96,7 +100,7 @@ Referenzdatei: `Base_Sequence.xml` (liegt im Repo unter `reference/Base_Sequence
 | `lat`, `lon` | Kameraposition in Grad | berechnet |
 | `z` | vertikale Kamerakoordinate (Einheit wie in Met.3D-Szene) | 25 |
 | `yaw` | Blickrichtung horizontal, in Grad (0–360) | berechnet |
-| `pitch` | Neigung der Kamera in Grad | 90 |
+| `pitch` | Neigung der Kamera in Grad: 90 = horizontal, > 90 nach oben, < 90 nach unten (in Met.3D verifiziert) | 90 |
 | `roll` | Rollwinkel | 0 |
 | `transition` | Übergangsdauer zum nächsten Key | 1 |
 | `advanceTimestep` | Zeitschritt-Vorlauf | 0 |
@@ -114,7 +118,9 @@ Die Referenzdatei hat 4 Keys auf einem Quadrat um (lat 0, lon 0) mit Kantenabsta
 | SW | -50 | -50 | 315 |
 | NW | 50 | -50 | 225 |
 
-Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norden = 0°, Peilung im Uhrzeigersinn; yaw zählt also entgegen dem Uhrzeigersinn). `pitch = 90` bedeutet in der Referenz vermutlich „horizontal blickend“.
+Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norden = 0°, Peilung im Uhrzeigersinn; yaw zählt also entgegen dem Uhrzeigersinn). Diese yaw-Formel gilt weiterhin als Annahme und ist beim Import zu prüfen.
+
+**In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` bedeutet „horizontal blickend", Werte > 90 blicken nach oben, Werte < 90 nach unten. Die Auto-Pitch-Berechnung lautet deshalb `pitch = 90 − atan2(cameraZ − focusZ, horizontale Distanz)`.
 
 - Diese Formel und die Pitch-Bedeutung als **eine zentrale, getestete Funktion** (`computeYaw`) implementieren und im Code mit `// ANNAHME:` kommentieren.
 - Ein Unit-Test muss die vier Referenz-Keys exakt reproduzieren.
@@ -137,6 +143,7 @@ Daraus folgt: **`yaw = (360 − Kompasspeilung zum Fokuspunkt) mod 360`** (Norde
    │  │  ├─ index.ts        # Registry aller Pfadtypen
    │  │  └─ circle.ts       # V1: Vollkreis
    │  ├─ yaw.ts             # computeYaw
+   │  ├─ loop.ts            # applyLoop (Option: Key am Ende wiederholt den ersten)
    │  ├─ xml.ts             # buildSequenceXml
    │  └─ validate.ts
    ├─ ui/                   # Formular, Download-Button, Fehleranzeige
@@ -201,6 +208,9 @@ Neue Kamerafahrten (Halbkreis, Viertel, Gerade …) werden **ausschließlich** a
 - `pitch` wahlweise automatisch aus dem Höhenunterschied zum Fokuspunkt berechnet
   (Checkbox „Pitch automatisch berechnen“, Default **aus** = ein manueller Wert für alle Keys);
   bei automatisch ist das Pitch-Feld deaktiviert
+- Checkbox „Geschlossener Loop" (Default **aus**): hängt am Ende eine exakte Kopie des ersten
+  Keyframes an, damit die Fahrt zum Start zurückkehrt. Wird zentral in `core/loop.ts` nach
+  `path.generate()` angewendet, damit die PathTypes frei von Fahrttyp-unabhängiger Logik bleiben
 - Auswahl der Kamerafahrt (Dropdown, V1 nur „360°-Kreis“, weitere ausgegraut mit Hinweis „folgt“)
 
 Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderung sofort funktioniert.
@@ -247,6 +257,8 @@ Mit Vitest in `src/core/**/*.test.ts`:
 4. Zahlenformatierung (`50`, `-0` → `0`, `12.345678`).
 5. XML-Escaping in `label` und `name`.
 6. Validierung: jeder Fehlerfall mindestens ein Test.
+7. Auto-Pitch: Kamera über dem Fokus ergibt `pitch < 90` (Blick nach unten), unter dem Fokus `> 90`.
+8. `applyLoop`: mit Loop `N+1` Keys, letzter ist eine exakte Kopie des ersten; ohne Loop unverändert.
 
 ## 8. UI/UX-Richtlinien
 

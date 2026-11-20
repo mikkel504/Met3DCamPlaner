@@ -5,6 +5,7 @@ import { getDefaultPathType, getPathType } from './core/paths';
 import { buildSequenceXml } from './core/xml';
 import { validateParams } from './core/validate';
 import { DEFAULT_TENSION_XML } from './core/constants';
+import { applyLoop } from './core/loop';
 
 /**
  * Verdrahtung: Formular -> Validierung -> Keyframes -> 3D-Vorschau + XML.
@@ -46,9 +47,10 @@ function update(): void {
     return;
   }
 
-  const keys = path.generate(common, pathParams as never);
-  // Tension verbatim aus dem Feld, damit der Default-Export byte-identisch
-  // zur Referenzdatei bleibt (float32-Präzision, siehe core/xml.ts).
+  // Loop: optional ein zusätzlicher Key exakt auf dem ersten (core/loop.ts).
+  const keys = applyLoop(path.generate(common, pathParams as never), common.loop);
+  // Tension verbatim aus dem Feld, damit keine Rundungsartefakte entstehen
+  // (float32-Präzision, siehe core/xml.ts).
   const rawTension = form.rawValue('common.tension').trim();
   const tensionOut = rawTension === '' ? DEFAULT_TENSION_XML : rawTension;
   const xml = buildSequenceXml(common.name, tensionOut, keys);
