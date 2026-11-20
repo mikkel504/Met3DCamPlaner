@@ -35,7 +35,9 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   den Baustein `src/view3d/label.ts` und sind damit in jeder Zoomstufe exakt gleich groß.
   `circle.ts` hat zwei Radien: `radius` (Halbachse Nord–Süd) und `radiusLon`
   (Halbachse Ost–West) – gleiche Werte = Kreis, verschiedene = Ellipse.
-  Buttons „Ansicht zurücksetzen" und „Ganze Karte". Farben: Keyframes/Pfadlinie dunkelrot
+  Buttons „Ansicht zurücksetzen", „Ganze Karte" und „Orthografische Draufsicht" (zweite
+  Kamera: Orthografie senkrecht über der Karte, Norden oben; die anderen beiden Buttons
+  stellen die Perspektivkamera wieder her). Farben: Keyframes/Pfadlinie dunkelrot
   (ohne Nummerierung, keine Loop-Beschriftung), Blickrichtungspfeile dunkelblau,
   Fokuspunkt orange. UI-Schrift vergrößert (`html { font-size: 112.5% }`).
   Die Hilfetexte stehen **nicht** mehr dauerhaft unter den Feldern, sondern hinter einem
@@ -286,7 +288,11 @@ Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderu
   interpolierter Pfad als Linie (dunkelrot), Blickrichtung je Key als kurzer Pfeil (dunkelblau).
 - Pfadlinie über Catmull-Rom-Spline (`THREE.CatmullRomCurve3`, `centripetal`/`tension` passend), nur als Näherung der Met.3D-Interpolation; im UI mit Hinweis kennzeichnen.
 - Orbit-Controls (drehen, zoomen, verschieben), Buttons „Ansicht zurücksetzen" (rahmt die
-  Kamerafahrt) und „Ganze Karte" (rahmt die ganze Weltkarte, damit alle Randwerte sichtbar sind).
+  Kamerafahrt), „Ganze Karte" (rahmt die ganze Weltkarte, damit alle Randwerte sichtbar sind)
+  und „Orthografische Draufsicht" (zweite, orthografische Kamera senkrecht über der Karte,
+  Norden oben, Siehbereich „cover“ auf die ganze Karte). Die beiden ersten Buttons schalten
+  zurück auf die Perspektivkamera. `camera.up` ist pro Kamera unterschiedlich (Perspektive z,
+  Orthografie y), deshalb werden die OrbitControls beim Kamerawechsel neu gebaut.
 - Vorschau aktualisiert sich **live** bei jeder Eingabeänderung (Debounce ca. 100 ms).
 - Ein Z-up-Koordinatensystem verwenden (`camera.up.set(0, 0, 1)`), damit z der Höhe entspricht.
 - Kartengrundlage: equirektanguläre Weltkarte aus `public/` als Textur auf einer Ebene bei
