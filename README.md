@@ -12,9 +12,11 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
 ## Bedienung
 
 1. **Fokuspunkt** – Breite (Lat), Länge (Lon) und Höhe des Punktes, um den die Kamera fliegt.
-2. **Kamerafahrt** – Fahrttyp wählen, beide Radien (in Grad der Kartenebene: Nord–Süd und
+2. **Kamerafahrt** – beide Radien (in Grad der Kartenebene: Nord–Süd und
    Ost–West; gleiche Werte = Kreis, verschiedene = Ellipse), Startwinkel,
-   Umlaufwinkel (360° = voller Kreis, 180° = Halbkreis), Umlaufrichtung.
+   Umlaufwinkel (360° = voller Kreis, 180° = Halbkreis), Umlaufrichtung. Ein Auswahmenü
+   für den Fahrttyp gibt es nicht, solange nur einer angeboten wird – mit weiteren
+   `PathType`-Dateien erscheint es automatisch.
 3. **Kamera-Einstellungen** – Kamerahöhe `z`, Anzahl Keyframes, „Geschlossener Loop",
    Pitch (automatisch oder manuell, siehe unten), Roll, Transition, `advanceTimestep`,
    Name und Tension der Kurve (Standard `0.05`).

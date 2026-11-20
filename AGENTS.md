@@ -40,6 +40,9 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   Fokuspunkt orange. UI-Schrift vergrößert (`html { font-size: 112.5% }`).
 - **Entfernt auf Wunsch (November 2026):** Checkbox „Längengrad-Verzerrung korrigieren"
   (`correctLonDistortion`) aus `circle.ts` – wurde nicht gebraucht. Nicht wieder einführen.
+  Ebenso das **Fahrttyp-Dropdown** im Formular: mit nur einem aktiven Fahrttyp ist es eine
+  Auswahl ohne Wahl. `ui/form.ts` baut das Menü jetzt nur noch, wenn die Registry zwei oder
+  mehr aktive Typen enthält – für Schritt 8 muss daran nichts geändert werden.
 - **In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` = horizontal,
   `pitch > 90` blickt nach **oben**, `pitch < 90` nach **unten**. Die Auto-Pitch-Formel
   lautet deshalb `90 − atan2(Δz, Horizontaldistanz)` (Vorzeichen korrigiert).
@@ -239,7 +242,9 @@ Neue Kamerafahrten (Halbkreis, Viertel, Gerade …) werden **ausschließlich** a
 - Checkbox „Geschlossener Loop" (Default **aus**): hängt am Ende eine exakte Kopie des ersten
   Keyframes an, damit die Fahrt zum Start zurückkehrt. Wird zentral in `core/loop.ts` nach
   `path.generate()` angewendet, damit die PathTypes frei von Fahrttyp-unabhängiger Logik bleiben
-- Auswahl der Kamerafahrt (Dropdown, V1 nur „360°-Kreis“, weitere ausgegraut mit Hinweis „folgt“)
+- Auswahl der Kamerafahrt: Die Registry in `core/paths/` entscheidet. Mit nur einem aktiven
+  Fahrttyp rendert `ui/form.ts` **kein** Dropdown (Auswahl ohne Wahl); erst ab zwei aktiven
+  Typen erscheint das Menü automatisch
 
 Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderung sofort funktioniert.
 

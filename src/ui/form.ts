@@ -1,6 +1,6 @@
 import { COMMON_DEFAULTS, COMMON_FIELDS } from '../core/fields';
 import { DEFAULT_TENSION_XML } from '../core/constants';
-import { listPathTypes } from '../core/paths';
+import { getDefaultPathType, listPathTypes } from '../core/paths';
 import type {
   CommonField,
   CommonParams,
@@ -14,6 +14,8 @@ import type {
 /**
  * Formular: baut alle Felder aus den Metadaten von core/ (COMMON_FIELDS und
  * paramSchema des gewählten Pfadtyps). Kein Fahrtyp-spezifischer Code hier.
+ * Das Fahrttyp-Auswahlmenü erscheint erst, wenn die Registry mehr als einen
+ * aktiven Fahrttyp enthält – mit nur einem Typ wäre es eine Auswahl ohne Wahl.
  */
 
 export interface FormHandle {
@@ -58,7 +60,10 @@ export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
     section.append(heading);
 
     if (group === 'path') {
-      section.append(pathSelect, pathParamsContainer);
+      if (pathSelect) {
+        section.append(pathSelect);
+      }
+      section.append(pathParamsContainer);
     }
 
     for (const field of COMMON_FIELDS.filter((f) => f.group === group)) {
@@ -91,6 +96,14 @@ export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
   renderPathParams(getPathById(selectedPathId(pathSelect)), pathParamsContainer, refs, onChange);
 
   function buildPathSelector(onChangeCb: () => void) {
+    const container = document.createElement('div');
+    container.className = 'path-params';
+    // Nur wenn die Registry mehrere Fahrttypen anbietet, ergibt ein Auswahlmenü
+    // Sinn – mit einem einzigen Typ wäre es ein Formularfeld ohne Auswahl.
+    const enabled = listPathTypes().filter((entry) => entry.enabled);
+    if (enabled.length < 2) {
+      return { select: null, container };
+    }
     const select = document.createElement('select');
     select.id = 'path-select';
     select.setAttribute('aria-label', 'Kamerafahrt auswählen');
@@ -101,12 +114,11 @@ export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
       option.disabled = !entry.enabled;
       select.append(option);
     }
+    select.value = enabled[0]!.path.id;
     select.addEventListener('change', () => {
       renderPathParams(getPathById(selectedPathId(select)), pathParamsContainer, refs, onChangeCb);
       onChangeCb();
     });
-    const container = document.createElement('div');
-    container.className = 'path-params';
     return { select, container };
   }
 
@@ -179,8 +191,8 @@ export function buildForm(root: HTMLElement, onChange: () => void): FormHandle {
   };
 }
 
-function selectedPathId(select: HTMLSelectElement): string {
-  return select.value;
+function selectedPathId(select: HTMLSelectElement | null): string {
+  return select?.value || getDefaultPathType().id;
 }
 
 function getPathById(id: string): PathType {
