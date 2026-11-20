@@ -2,6 +2,30 @@
 
 Anweisungen für Opencode (und andere Coding-Agenten) für dieses Repository.
 
+## 0. Status & Arbeitsstand (Stand 2026-11-20)
+
+Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was bereits gilt:
+
+- **Repository:** https://github.com/mikkel504/Met3DCamPlaner, Branch `main`
+- **Live:** https://mikkel504.github.io/Met3DCamPlaner/ (Pages-Build-Source „GitHub Actions" ist aktiviert, Workflow läuft grün)
+- **Vite `base`:** `/Met3DCamPlaner/` – muss exakt dem Repo-Namen entsprechen, sonst 404 auf Pages
+- **Versionen (wegen lokale Node 18.13 gepinnt):** Vite ^5.4, Vitest ^2.1, three ^0.169,
+  TypeScript ^5.5, ESLint ^9 + typescript-eslint ^8, `@types/node` ^20.
+  `EBADENGINE`-Warnungen bei `npm install` sind harmlos; der CI-Workflow nutzt Node 20.
+- **Grün:** 5 Testdateien / 47 Tests, `npm run lint`, `npm run build`
+- **Umgesetzt:** Schritte 1–7 aus Abschnitt 11. **Offen:** Schritt 8
+  (Halbkreis, Viertelkreis, Gerade – nur neue `PathType`-Dateien plus Registry-Eintrag).
+- **Umgesetzt über die Ursprungsvorgabe hinaus:** Pitch wählbar automatisch/manuell
+  (`autoPitch`, `src/core/pitch.ts`); Typ-Erweiterungen `CommonParams.advanceTimestep`,
+  `PathType.isClosed` / `validate` / `minKeyframes`, `ParamField.exclusiveMin`,
+  `CommonField.kind: 'checkbox'` und `CommonField.disables`.
+- **Noch in Met.3D zu verifizieren** (siehe Abschnitt 4): yaw-Formel, Bedeutung von
+  `pitch = 90`, Auto-Pitch-Formel `90 + atan2(Δz, Horizontaldistanz)`.
+  `reference/Base_Sequence.xml` wurde aus der Spezifikation rekonstruiert – exportierte
+  Datei daher unbedingt einmal in Met.3D laden.
+- **Lokal:** Dev-Server läuft auf 5173, ausnahmsweise 5174 wenn 5173 belegt ist;
+  URL enthält immer den Basis-Pfad `/Met3DCamPlaner/`.
+
 ## 1. Projektziel
 
 Eine statische Website, mit der Studierende **Kamerafahrten für Met.3D** konfigurieren, in einem **3D-Koordinatensystem** vorab ansehen und als **XML-Datei im Base_Sequence-Format** exportieren können.
@@ -174,6 +198,9 @@ Neue Kamerafahrten (Halbkreis, Viertel, Gerade …) werden **ausschließlich** a
 - Anzahl der Keyframes
 - Startwinkel, Umlaufrichtung (im / gegen den Uhrzeigersinn)
 - `pitch`, `roll`, `transition`, `advanceTimestep`, `tension`, `name`
+- `pitch` wahlweise automatisch aus dem Höhenunterschied zum Fokuspunkt berechnet
+  (Checkbox „Pitch automatisch berechnen“, Default **aus** = ein manueller Wert für alle Keys);
+  bei automatisch ist das Pitch-Feld deaktiviert
 - Auswahl der Kamerafahrt (Dropdown, V1 nur „360°-Kreis“, weitere ausgegraut mit Hinweis „folgt“)
 
 Alle Eingaben mit sinnvollen Defaults vorbelegen, sodass der Export ohne Änderung sofort funktioniert.

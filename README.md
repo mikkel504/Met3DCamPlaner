@@ -3,6 +3,7 @@
 Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)** konfiguriert, in einer
 3D-Vorschau geprüft und als **XML-Datei im `Base_Sequence`-Format** exportiert werden können.
 
+- **Live:** https://mikkel504.github.io/Met3DCamPlaner/ · Quellcode: https://github.com/mikkel504/Met3DCamPlaner
 - Läuft komplett im Browser (kein Backend), gehostet auf GitHub Pages.
 - Version 1: **360°-Kreisumrundung** um einen Fokuspunkt. Halbkreis/Viertelkreis sind über
   „Umlaufwinkel" bereits möglich; weitere Fahrttypen (Gerade …) folgen als eigene `PathType`-Dateien.
