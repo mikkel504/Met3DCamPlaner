@@ -38,6 +38,9 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   Buttons „Ansicht zurücksetzen" und „Ganze Karte". Farben: Keyframes/Pfadlinie dunkelrot
   (ohne Nummerierung, keine Loop-Beschriftung), Blickrichtungspfeile dunkelblau,
   Fokuspunkt orange. UI-Schrift vergrößert (`html { font-size: 112.5% }`).
+  Die Hilfetexte stehen **nicht** mehr dauerhaft unter den Feldern, sondern hinter einem
+  (i)-Knopf an der Beschriftung: `buildLabelRow()` in `ui/form.ts` (einzige Stelle für
+  Beschriftung + Knopf), CSS `.info-button` und `.field.help-open .help`.
 - **Entfernt auf Wunsch (November 2026):** Checkbox „Längengrad-Verzerrung korrigieren"
   (`correctLonDistortion`) aus `circle.ts` – wurde nicht gebraucht. Nicht wieder einführen.
   Ebenso das **Fahrttyp-Dropdown** im Formular: mit nur einem aktiven Fahrttyp ist es eine
@@ -318,7 +321,9 @@ Mit Vitest in `src/core/**/*.test.ts`:
 
 - Einspaltiges Formular links, 3D-Vorschau rechts (auf schmalen Bildschirmen untereinander).
 - Gruppierung: „Fokuspunkt“, „Kamerafahrt“, „Kamera-Einstellungen“, „Export“.
-- Jedes Feld mit Einheit und Tooltip-Erklärung (z. B. „Anzahl Keyframes: Mehr Keyframes ergeben eine glattere Fahrt.“).
+- Jedes Feld mit Einheit und Erklärung; die Erklärung steckt hinter einem (i)-Knopf an der
+  Beschriftung (ein-/ausklappbar, echtes `<button>` mit `aria-expanded`/`aria-controls`,
+  `Esc` schließt) und steht **nicht** dauerhaft unter dem Feld – das hält das Formular kompakt.
 - Beschriftungen und Hilfetexte auf Deutsch; Code, Variablen und Commit-Messages auf Englisch.
 - Barrierefrei: `<label for>`, Tastaturbedienung, ausreichender Kontrast, Hell/Dunkel über `prefers-color-scheme`.
 

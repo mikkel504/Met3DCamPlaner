@@ -42,6 +42,8 @@ Statische Website, mit der **Kamerafahrten für [Met.3D](https://met3d.dkrz.de/)
    solange Validierungsfehler vorliegen.
 
 Alle Felder sind mit sinnvollen Defaults vorbelegt – der Export funktioniert ohne Änderungen.
+Jede Beschriftung trägt ein **(i)-Symbol**: Klick (oder Fokus + Enter) klappt die Erklärung des
+Felds auf, erneutes Klick oder `Esc` blendet sie wieder aus – so bleibt das Formular kompakt.
 
 > **Wichtig:** Exportierte Datei einmal in Met.3D laden und prüfen.
 

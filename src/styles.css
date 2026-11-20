@@ -88,11 +88,22 @@ body {
   margin-bottom: 0.8rem;
 }
 
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
 .field label {
   display: block;
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.2rem;
+}
+
+.label-row label {
+  margin-bottom: 0;
 }
 
 .field input[type='number'],
@@ -136,10 +147,53 @@ button:focus-visible,
   width: auto;
 }
 
+/* Kreisförmiger (i)-Knopf an der Beschriftung; öffnet die Erklärung des Felds. */
+.info-button {
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: var(--muted);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.info-button:hover,
+.info-button[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.info-button[aria-expanded='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Erklärung ist eingeklappt und wird je Feld über den (i)-Knopf geöffnet. */
 .help {
-  margin: 0.25rem 0 0;
+  display: none;
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--field-bg);
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+.field.help-open .help {
+  display: block;
 }
 
 .messages {

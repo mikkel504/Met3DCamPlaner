@@ -16,6 +16,8 @@ import type {
  * paramSchema des gewählten Pfadtyps). Kein Fahrtyp-spezifischer Code hier.
  * Das Fahrttyp-Auswahlmenü erscheint erst, wenn die Registry mehr als einen
  * aktiven Fahrttyp enthält – mit nur einem Typ wäre es eine Auswahl ohne Wahl.
+ * Die Erklärung eines Felds steht nicht unter dem Feld, sondern hinter einem
+ * (i)-Knopf an der Beschriftung.
  */
 
 export interface FormHandle {
@@ -201,6 +203,66 @@ function getPathById(id: string): PathType {
   return entry?.path ?? fallback ?? listPathTypes()[0]!.path;
 }
 
+interface LabelRefs {
+  row: HTMLElement;
+  help: HTMLElement | null;
+}
+
+/**
+ * Beschriftung mit (i)-Knopf: die Erklärung gehört nicht mehr dauerhaft unter
+ * das Feld (macht das Formular lang), sondern wird über den Knopf ein- und
+ * ausgeklappt. Der Knopf ist ein echtes <button>, damit er per Tastatur
+ * erreichbar ist; aria-expanded/aria-controls beschreiben den Zustand für
+ * Screenreader, das Feld selbst bleibt über aria-describedby verbunden.
+ */
+function buildLabelRow(
+  wrap: HTMLElement,
+  fieldId: string,
+  labelText: string,
+  help: string | undefined,
+): LabelRefs {
+  const row = document.createElement('div');
+  row.className = 'label-row';
+
+  const label = document.createElement('label');
+  label.htmlFor = `input-${fieldId}`;
+  label.textContent = labelText;
+  row.append(label);
+
+  if (!help) {
+    return { row, help: null };
+  }
+
+  const helpText = document.createElement('p');
+  helpText.className = 'help';
+  helpText.id = `help-${fieldId}`;
+  helpText.textContent = help;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'info-button';
+  button.textContent = 'i';
+  button.title = help;
+  button.setAttribute('aria-label', `Erläuterung zu „${labelText}“ anzeigen`);
+  button.setAttribute('aria-expanded', 'false');
+  button.setAttribute('aria-controls', helpText.id);
+
+  const setOpen = (open: boolean) => {
+    // aria-expanded trägt den Zustand, der Name bleibt gleich.
+    button.setAttribute('aria-expanded', String(open));
+    wrap.classList.toggle('help-open', open);
+  };
+  button.addEventListener('click', () => setOpen(button.getAttribute('aria-expanded') !== 'true'));
+  button.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      setOpen(false);
+    }
+  });
+  row.append(button);
+
+  return { row, help: helpText };
+}
+
 function buildCommonField(
   field: CommonField,
   refs: Map<string, FieldRefs>,
@@ -209,10 +271,6 @@ function buildCommonField(
   const fieldId = `${FIELD_PREFIX.common}.${String(field.key)}`;
   const wrap = document.createElement('div');
   wrap.className = 'field';
-
-  const label = document.createElement('label');
-  label.htmlFor = `input-${fieldId}`;
-  label.textContent = field.label + (field.unit ? ` (${field.unit})` : '');
 
   const input = document.createElement('input');
   input.id = `input-${fieldId}`;
@@ -227,7 +285,6 @@ function buildCommonField(
     input.type = 'text';
   }
   if (field.help) {
-    input.title = field.help;
     input.setAttribute('aria-describedby', `help-${fieldId}`);
   }
 
@@ -240,19 +297,20 @@ function buildCommonField(
       field.key === 'tension' ? DEFAULT_TENSION_XML : String(defaultValue ?? '');
   }
 
+  const { row, help } = buildLabelRow(
+    wrap,
+    fieldId,
+    field.label + (field.unit ? ` (${field.unit})` : ''),
+    field.help,
+  );
   if (field.kind === 'checkbox') {
-    const box = document.createElement('div');
-    box.className = 'field-inline';
-    box.append(input, label);
-    wrap.append(box);
+    row.classList.add('field-inline');
+    row.prepend(input);
+    wrap.append(row);
   } else {
-    wrap.append(label, input);
+    wrap.append(row, input);
   }
-  if (field.help) {
-    const help = document.createElement('p');
-    help.className = 'help';
-    help.id = `help-${fieldId}`;
-    help.textContent = field.help;
+  if (help) {
     wrap.append(help);
   }
   const messages = document.createElement('div');
@@ -314,7 +372,6 @@ function buildParamField(
   }
   input.id = `input-${fieldId}`;
   if (field.help) {
-    input.title = field.help;
     input.setAttribute('aria-describedby', `help-${fieldId}`);
   }
 
@@ -325,23 +382,20 @@ function buildParamField(
     input.value = String(defaultValue);
   }
 
-  const label = document.createElement('label');
-  label.htmlFor = input.id;
-  label.textContent = field.label + (field.unit ? ` (${field.unit})` : '');
-
+  const { row, help } = buildLabelRow(
+    wrap,
+    fieldId,
+    field.label + (field.unit ? ` (${field.unit})` : ''),
+    field.help,
+  );
   if (field.kind === 'checkbox') {
-    const box = document.createElement('div');
-    box.className = 'field-inline';
-    box.append(input, label);
-    wrap.append(box);
+    row.classList.add('field-inline');
+    row.prepend(input);
+    wrap.append(row);
   } else {
-    wrap.append(label, input);
+    wrap.append(row, input);
   }
-  if (field.help) {
-    const help = document.createElement('p');
-    help.className = 'help';
-    help.id = `help-${fieldId}`;
-    help.textContent = field.help;
+  if (help) {
     wrap.append(help);
   }
   const messages = document.createElement('div');
