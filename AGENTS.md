@@ -60,12 +60,6 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
 - **Noch in Met.3D zu verifizieren** (siehe Abschnitt 4): yaw-Formel (Blick zum Fokuspunkt?).
   `reference/Base_Sequence.xml` wurde aus der Spezifikation rekonstruiert – exportierte
   Datei daher unbedingt einmal in Met.3D laden.
-- **Agent-Skill (Apple HIG) lokal, nicht im Repo:** Der Design-Review-Skill `dickwu/apple-design-skill`
-  liegt als Direkt-Klon in `.opencode/skills/apple-design/` (Skill-ID `apple-design`, ~1,3 MB) und ist
-  über `.gitignore` ausgeschlossen – die 123 HIG-Markdown-Seiten gehören nicht zur Website und dürfen
-  nicht in den Pages-Build. Der `skills`-CLI (`npx skills add …`) verlangt Node ≥ 22 und startet auf
-  dem lokalen Node 18.13 nicht (`styleText` fehlt in `node:util`); Node-Pinnungen deshalb nicht ändern.
-  Aktualisieren: `git -C .opencode/skills/apple-design pull`. ESLint ignoriert `.opencode/**`.
 - **Lokal:** Dev-Server läuft auf 5173, ausnahmsweise 5174 wenn 5173 belegt ist;
   URL enthält immer den Basis-Pfad `/Met3DCamPlaner/`.
 

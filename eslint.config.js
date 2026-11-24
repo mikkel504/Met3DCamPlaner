@@ -6,8 +6,7 @@ import tseslint from 'typescript-eslint';
  * core/ bleibt DOM-frei (Durchsetzung über Review/Tests), hier nur Codequalität.
  */
 export default tseslint.config(
-  // .opencode/skills/ enthaelt heruntergeladene Fremd-Skripte (Apple-HIG-Skill) – nicht unser Code
-  { ignores: ['dist/**', 'node_modules/**', '.opencode/**'] },
+  { ignores: ['dist/**', 'node_modules/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
