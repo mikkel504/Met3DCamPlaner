@@ -54,6 +54,10 @@ Für einen Agenten, der ohne Gesprächskontext neu startet – hier steht, was b
   Ebenso das **Fahrttyp-Dropdown** im Formular: mit nur einem aktiven Fahrttyp ist es eine
   Auswahl ohne Wahl. `ui/form.ts` baut das Menü jetzt nur noch, wenn die Registry zwei oder
   mehr aktive Typen enthält – für Schritt 8 muss daran nichts geändert werden.
+   Ebenfalls entfernt: der lokale Agent-Skill `.opencode/skills/apple-design`
+   (Apple-HIG-Review-Skill). Er lag nur außerhalb des Repos; Repo, `gitignore` und
+   `eslint.config.js` enthalten dazu nichts mehr. Nicht erneut installieren, solange kein
+   ausdrücklicher Wunsch nach einem UI-Design-Review vorliegt.
 - **In Met.3D verifiziert (Import-Test 2026-11-20):** `pitch = 90` = horizontal,
   `pitch > 90` blickt nach **oben**, `pitch < 90` nach **unten**. Die Auto-Pitch-Formel
   lautet deshalb `90 − atan2(Δz, Horizontaldistanz)` (Vorzeichen korrigiert).
